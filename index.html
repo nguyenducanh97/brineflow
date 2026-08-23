@@ -402,7 +402,7 @@ footer{padding:14px 20px 30px;color:var(--muted);font-size:11.5px;text-align:cen
     </a>
     <span class="vr"></span>
     <div class="title">
-      <h1>Brine<b>Flow</b><span class="ver">v2.2</span></h1>
+      <h1>Brine<b>Flow</b><span class="ver">v2.3</span></h1>
       <p data-i18n="tagline">SWRO · HPRO · OARO train simulator</p>
     </div>
   </div>
@@ -473,7 +473,7 @@ footer{padding:14px 20px 30px;color:var(--muted);font-size:11.5px;text-align:cen
       <a href="http://www.swatlab.or.kr/" target="_blank" rel="noopener">SWAT Lab</a>
       <span data-i18n="footLab">— Sustainable Water Treatment Laboratory, Sungkyunkwan University</span></span>
   </div>
-  <div>BrineFlow v2.2 · <span data-i18n="footNote">runs entirely offline in your browser · drag panel headers to rearrange · ⤢ to focus a panel</span></div>
+  <div>BrineFlow v2.3 · <span data-i18n="footNote">runs entirely offline in your browser · drag panel headers to rearrange · ⤢ to focus a panel</span></div>
 </footer>
 
 <script>
@@ -560,7 +560,10 @@ en:{
   fRec:'Recovery', fTarget:'Target C', fRej:'Salt rejection', fCp:'Conc. polarisation β',
   tipCp:'β = C_wall / C_bulk, typically 1.1 – 1.3',
   fNdp:'Net driving pressure', fDp:'Channel ΔP', fEff:'Pump efficiency', fPmax:'Max. pressure',
-  tipPmax:'SWRO ≈ 83 bar, HPRO ≈ 120 bar, OARO ≈ 70 bar',
+  tipNdp:'The pressure left over once osmotic pressure has been beaten — this is what actually drives flux (J = A·NDP). Applied at the concentrate end, the hardest point in the element. Typical 3–8 bar. More NDP means more water per m² of membrane, but every bar is paid for at the pump.',
+  tipDp:'Friction loss along the feed spacer from inlet to outlet. A pure loss — the pump pays for it and nothing comes back. Typically 0.3–1 bar per element, so 2–4 bar across a vessel. It rises as the elements foul, which is why plants trend it.',
+  tipEff:'Wire-to-water efficiency: the share of electrical power that ends up as hydraulic pressure. 80–85 % for a large high-pressure pump train, 60–72 % for a pilot skid. Affects the energy numbers only — never the mass balance.',
+  tipPmax:'Mechanical rating of the element and pressure vessel. Used only as a limit check, never in the calculation. SWRO ≈ 83 bar (1200 psi), HPRO ≈ 120 bar, OARO ≈ 70 bar, BWRO ≈ 41 bar.',
   subSWRO:'seawater RO', subHPRO:'high-pressure RO', subOARO:'osmotically assisted',
   noStages:'No stages yet — add an SWRO, HPRO or OARO block below.',
   ttUp:'Move up', ttDown:'Move down', ttDup:'Duplicate', ttDel:'Delete', ttRename:'Rename',
@@ -684,7 +687,10 @@ ko:{
   fRec:'회수율', fTarget:'목표 C', fRej:'염제거율', fCp:'농도분극 계수 β',
   tipCp:'β = 막면 농도 / 벌크 농도, 일반적으로 1.1 – 1.3',
   fNdp:'순구동압력 (NDP)', fDp:'유로 압력손실 ΔP', fEff:'펌프 효율', fPmax:'최대 운전 압력',
-  tipPmax:'SWRO ≈ 83 bar, HPRO ≈ 120 bar, OARO ≈ 70 bar',
+  tipNdp:'삼투압을 이긴 뒤 남는 압력으로, 실제로 물을 투과시키는 힘입니다 (J = A·NDP). 엘리먼트에서 가장 불리한 농축수 출구 기준으로 적용하며 보통 3–8 bar 입니다. 클수록 막면적당 생산량은 늘어나지만 그만큼 펌프 에너지가 들어갑니다.',
+  tipDp:'공급 스페이서를 따라 흐르며 생기는 마찰 손실로, 회수되지 않는 순수 손실입니다. 엘리먼트당 0.3–1 bar, 베셀당 2–4 bar 수준이며 막이 오염될수록 커지기 때문에 세정 시점 판단에 사용됩니다.',
+  tipEff:'전력이 수력 압력으로 전환되는 비율(wire-to-water) 입니다. 대형 고압펌프는 80–85 %, 파일럿 설비는 60–72 % 수준입니다. 물질수지에는 영향을 주지 않고 에너지 계산에만 사용됩니다.',
+  tipPmax:'엘리먼트와 압력 베셀의 기계적 허용 압력입니다. 계산에는 쓰이지 않고 초과 여부만 점검합니다. SWRO ≈ 83 bar (1200 psi), HPRO ≈ 120 bar, OARO ≈ 70 bar, BWRO ≈ 41 bar.',
   subSWRO:'해수 역삼투', subHPRO:'고압 역삼투', subOARO:'삼투 보조 역삼투',
   noStages:'스테이지가 없습니다 — 아래에서 SWRO, HPRO 또는 OARO 를 추가하세요.',
   ttUp:'위로', ttDown:'아래로', ttDup:'복제', ttDel:'삭제', ttRename:'이름 변경',
@@ -1544,9 +1550,9 @@ function renderStages(){
 
     b.appendChild(el('div','sect',t('secHyd')));
     const g3 = el('div','grid2');
-    g3.appendChild(field(t('fNdp')+U('bar'), s.ndp, v=>{s.ndp=v;refresh();},{step:0.5,min:0}));
-    g3.appendChild(field(t('fDp')+U('bar'), s.dP, v=>{s.dP=v;refresh();},{step:0.5,min:0}));
-    g3.appendChild(field(t('fEff')+U('%'), s.pumpEff, v=>{s.pumpEff=v;refresh();},{step:1,min:1}));
+    g3.appendChild(field(t('fNdp')+U('bar'), s.ndp, v=>{s.ndp=v;refresh();},{step:0.5,min:0,tip:t('tipNdp')}));
+    g3.appendChild(field(t('fDp')+U('bar'), s.dP, v=>{s.dP=v;refresh();},{step:0.5,min:0,tip:t('tipDp')}));
+    g3.appendChild(field(t('fEff')+U('%'), s.pumpEff, v=>{s.pumpEff=v;refresh();},{step:1,min:1,tip:t('tipEff')}));
     g3.appendChild(field(t('fPmax')+U('bar'), s.pMax, v=>{s.pMax=v;refresh();},{step:1,min:1,tip:t('tipPmax')}));
     b.appendChild(g3);
     b.appendChild(el('div','mini','<span id="mini-'+s.id+'">…</span>'));
@@ -1797,12 +1803,15 @@ function renderDiagram(R){
 
     /* pressure gauge: how close this stage runs to its own rating */
     const gw = BW-30, gx = x+15, gy = top+BH-16;
-    const frac = Math.max(0,Math.min(1.15, r.Preq/Math.max(s.pMax,1)));
-    const gcol = frac>1 ? BAD : frac>0.95 ? WARN : OK;
+    /* ratio is the honest number for the label and the colour; the bar itself is
+       clamped so it cannot overflow its track, but never clamp the text. */
+    const ratio = Math.max(0, r.Preq/Math.max(s.pMax,1));
+    const gcol = ratio>1 ? BAD : ratio>0.95 ? WARN : OK;
     svg.appendChild(mk('rect',{x:gx,y:gy,width:gw,height:4,rx:2,fill:LINE}));
-    svg.appendChild(mk('rect',{x:gx,y:gy,width:gw*Math.min(frac,1),height:4,rx:2,fill:gcol}));
+    svg.appendChild(mk('rect',{x:gx,y:gy,width:gw*Math.min(ratio,1),height:4,rx:2,fill:gcol}));
     txt(gx,gy-5, f(r.Preq,1)+' bar',{anchor:'start',size:9,mono:true,fill:gcol,weight:700});
-    txt(gx+gw,gy-5, f(frac*100,0)+'% '+t('dOf')+' '+f(s.pMax,0),{anchor:'end',size:8.4,mono:true,fill:MUT});
+    txt(gx+gw,gy-5, f(ratio*100,0)+'% '+t('dOf')+' '+f(s.pMax,0),
+        {anchor:'end',size:8.4,mono:true,fill:ratio>1?gcol:MUT,weight:ratio>1?700:400});
 
     /* inlet */
     const prevX = i===0 ? 166 : X0+(i-1)*(BW+GAP)+BW;
