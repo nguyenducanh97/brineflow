@@ -538,7 +538,26 @@ en:{
   ttResize:'Drag to resize this panel', ttSplit:'Drag to resize the columns',
   /* ---- feed panel ---- */
   fFlow:'Feed flow', fTds:'Feed TDS', fTemp:'Temperature', fPre:'Pretreatment loss', fMakeup:'Make-up water TDS',
-  tipTds:'35 g/L = 35,000 mg/L', tipPre:'Backwash / CIP water lost in UF–DMF pretreatment',
+  tipFlow:'Raw seawater drawn into the plant, before pretreatment losses. The train scales with it: double the flow and recovery, salinities and specific energy stay put — only absolute flows and power move.',
+  tipTds:'Total dissolved solids of the raw seawater. 35 g/L = 35,000 mg/L, typical open ocean; the Arabian Gulf runs 40–45, the Baltic under 10.',
+  tipTemp:'Feed temperature. It sets osmotic pressure through π = φ·i·m·R·T, so warm water needs more pressure — roughly 0.35 % per °C. Real membranes also pass more water and more salt when warm; only the osmotic effect is modelled here.',
+  tipMakeup:'Salinity of low-salinity make-up water available to an OARO sweep. It only affects stages whose Sweep source is set to Fresh / product water make-up — otherwise it does nothing.',
+  tipErd:'Recovers pressure from the brine leaving the train and hands it back to the feed — a pressure exchanger or turbine. The single largest energy saving in seawater RO, usually worth a third or more of the specific energy.',
+  tipErdEff:'Share of the brine pressure energy the device returns. Modern pressure exchangers reach 95–97 %. Applies only while the device is switched on.',
+  tipPrice:'Electricity tariff. Used only for the cost figures — it changes no process result.',
+  tipHours:'Operating hours per year. Used only for the annual energy figure — it changes no process result.',
+  tipFrom:'Which stream feeds this stage. Previous stage concentrate follows automatically when you reorder the train; pick a named stream to build a non-sequential arrangement.',
+  tipTake:'Fraction of that source routed here. Use it to split one stream between two consumers — the tool warns if more than 100 % of a stream is drawn.',
+  tipBlend:'A second stream mixed into this stage feed, weighted by salt load. This is how a recycle loop is closed, for example returning OARO diluate to an upstream stage.',
+  tipSweepSrc:'Which stream flows along the low-pressure side. In a real cascade this is the diluate of the neighbouring stage; the external option lets you set a salinity directly while sizing the train.',
+  tipSweepMode:'Give the sweep flow as a percentage of this stage feed, or as a fixed m³/h. Use a fixed flow when the sweep sits inside a recycle loop, otherwise the loop can chase its own tail and diverge.',
+  tipSweepQ:'Sweep flow along the low-pressure side. More sweep dilutes less per pass, so the driving force stays high — at the cost of circulation energy.',
+  tipTakeSrc:'Fraction of the chosen source used as this stage sweep.',
+  tipSweepP:'Back-pressure held on the sweep channel. It adds directly to the feed pressure this stage needs, and sets the sweep circulation pump duty.',
+  tipSpecBy:'Either fix the water recovery and read off the concentrate salinity, or fix the target concentrate salinity and let the salt balance give you the recovery it takes.',
+  tipRec:'Share of the stage feed that passes through the membrane. The main design knob: more recovery means less brine, but higher brine salinity and a higher pressure to get there.',
+  tipTarget:'Concentrate salinity you want out of this stage. The recovery needed follows from the salt balance — watch the pressure it implies.',
+  tipRej:'Observed salt rejection referred to the stage feed. Seawater elements are 99.4–99.8 % when new; rejection falls as membranes age and fouls.', tipPre:'Backwash / CIP water lost in UF–DMF pretreatment',
   feedHint:'Pretreatment is modelled as a water loss only — TDS is unchanged. Everything downstream recalculates as you type.',
   /* ---- economics ---- */
   eErd:'Energy recovery device', eErdYes:'Yes — on final brine', eErdNo:'No',
@@ -668,7 +687,26 @@ ko:{
   ttGrip:'끌어서 패널을 이동합니다', ttCollapse:'접기 / 펼치기', ttFocus:'이 패널을 크게 보기',
   ttResize:'끌어서 패널 높이를 조절합니다', ttSplit:'끌어서 좌우 폭을 조절합니다',
   fFlow:'유입 유량', fTds:'유입수 TDS', fTemp:'온도', fPre:'전처리 손실률', fMakeup:'보충수 TDS',
-  tipTds:'35 g/L = 35,000 mg/L', tipPre:'UF–DMF 전처리의 역세·CIP 로 손실되는 수량',
+  tipFlow:'전처리 손실 이전의 원수 해수 유입량입니다. 공정은 이 값에 비례해 커지므로, 유량을 두 배로 해도 회수율·염농도·비에너지는 그대로고 절대 유량과 동력만 바뀍니다.',
+  tipTds:'원수 해수의 총용존고형물(TDS) 입니다. 35 g/L = 35,000 mg/L 로 일반적인 대양 해수이며, 아라비아만은 40–45, 발트해는 10 미만입니다.',
+  tipTemp:'유입수 온도입니다. π = φ·i·m·R·T 로 삼투압을 결정하여 온도가 높을수록 더 높은 압력이 필요합니다(약 0.35 %/°C). 실제 막은 온도가 오르면 투과수량과 염 투과도 함께 늘지만, 여기서는 삼투압 효과만 반영합니다.',
+  tipMakeup:'OARO 스윈에 사용할 수 있는 저염 보충수의 염농도입니다. 스윈 공급원이 “생산수 / 보충수” 로 설정된 스테이지에만 적용되며, 그 외에는 계산에 영향을 주지 않습니다.',
+  tipErd:'배출되는 농축수의 압력 에너지를 회수해 공급측으로 되돌려주는 장치(압력교환기 또는 터빈) 입니다. 해수담수화에서 가장 큰 에너지 절감 수단으로, 보통 비에너지의 1/3 이상을 줄입니다.',
+  tipErdEff:'농축수 압력 에너지 중 회수되는 비율입니다. 최신 압력교환기는 95–97 % 수준입니다. 장치를 적용한 경우에만 반영됩니다.',
+  tipPrice:'전력 단가입니다. 비용 지표 계산에만 쓰이며 공정 결과에는 영향을 주지 않습니다.',
+  tipHours:'연간 운전 시간입니다. 연간 전력량 지표에만 쓰이며 공정 결과에는 영향을 주지 않습니다.',
+  tipFrom:'이 스테이지에 공급되는 스트림입니다. “이전 스테이지 농축수” 는 순서를 바꾸면 자동으로 따라가며, 특정 스트림을 지정하면 순차적이지 않은 구성도 만들 수 있습니다.',
+  tipTake:'해당 공급원에서 이 스테이지로 보낼 비율입니다. 하나의 스트림을 둘로 나눠 보낼 때 사용하며, 합이 100 % 를 넘으면 경고가 표시됩니다.',
+  tipBlend:'이 스테이지 공급에 섮이는 두 번째 스트림으로, 염 부하 가중으로 혼합됩니다. OARO 희석수를 상류 스테이지로 되돌리는 등 재순환 루프를 구성할 때 사용합니다.',
+  tipSweepSrc:'저압측을 흘르는 스트림입니다. 실제 다단 공정에서는 인접 스테이지의 희석수를 사용하며, “외부 스윈” 은 설계 단계에서 염농도를 직접 가정해 볼 때 유용합니다.',
+  tipSweepMode:'스윈 유량을 스테이지 유입량 대비 %(비율) 또는 고정 m³/h 로 지정합니다. 스윈이 재순환 루프 안에 있을 때는 고정 유량을 사용하세요. 비율로 두면 루프가 스스로 커져 발산할 수 있습니다.',
+  tipSweepQ:'저압측을 흘르는 스윈 유량입니다. 유량이 많을수록 한 번에 덜 희석되어 구동력은 유지되지만 순환 에너지가 늘어납니다.',
+  tipTakeSrc:'선택한 공급원에서 스윈으로 사용할 비율입니다.',
+  tipSweepP:'스윈 유로에 걸리는 배압입니다. 이 스테이지에 필요한 공급 압력에 그대로 더해지며, 스윈 순환펌프의 부하를 결정합니다.',
+  tipSpecBy:'회수율을 고정해 농축수 농도를 구하거나, 목표 농축수 농도를 고정해 염 물질수지로부터 필요한 회수율을 역산합니다.',
+  tipRec:'스테이지 유입량 중 막을 통과하는 비율입니다. 가장 핵심적인 설계 변수로, 높일수록 농축수량은 줄지만 농축수 농도와 필요 압력은 함께 올라갑니다.',
+  tipTarget:'이 스테이지에서 목표로 하는 농축수 농도입니다. 필요한 회수율은 염 물질수지에서 결정되므로, 그에 따른 압력을 반드시 확인하세요.',
+  tipRej:'스테이지 유입수 기준 관측 염제거율입니다. 신품 해수용 엘리먼트는 99.4–99.8 % 이며, 사용 기간이 늘어나면 점차 낮아집니다.', tipPre:'UF–DMF 전처리의 역세·CIP 로 손실되는 수량',
   feedHint:'전처리는 수량 손실만 반영하며 TDS 는 변하지 않습니다. 값을 입력하면 이후 공정이 즉시 재계산됩니다.',
   eErd:'에너지 회수 장치 (ERD)', eErdYes:'적용 — 최종 농축수', eErdNo:'미적용',
   eErdEff:'ERD 효율', ePrice:'전력 단가', eHours:'연간 운전 시간',
@@ -1425,22 +1463,26 @@ function field(label, val, onch, opt={}){
 function renderFeed(){
   const g = el('div','grid2'); const F = state.feed;
   const U = u => ' <span class="unit">'+u+'</span>';
-  g.appendChild(field(t('fFlow')+U('m³/h'), F.Q, v=>{F.Q=v;refresh();},{step:1,min:0}));
+  g.appendChild(field(t('fFlow')+U('m³/h'), F.Q, v=>{F.Q=v;refresh();},{step:1,min:0,tip:t('tipFlow')}));
   g.appendChild(field(t('fTds')+U('g/L'),  F.C, v=>{F.C=v;refresh();},{step:0.5,min:0,tip:t('tipTds')}));
-  g.appendChild(field(t('fTemp')+U('°C'),F.T, v=>{F.T=v;refresh();},{step:1}));
+  g.appendChild(field(t('fTemp')+U('°C'),F.T, v=>{F.T=v;refresh();},{step:1,tip:t('tipTemp')}));
   g.appendChild(field(t('fPre')+U('%'),F.preLoss,v=>{F.preLoss=v;refresh();},{step:0.5,min:0,tip:t('tipPre')}));
-  g.appendChild(field(t('fMakeup')+U('g/L'),F.freshC,v=>{F.freshC=v;refresh();},{step:0.1,min:0}));
+  /* only worth showing when a stage actually sweeps with make-up water */
+  if (state.stages.some(x=>x.type==='OARO' && x.sweep.src==='FRESH'))
+    g.appendChild(field(t('fMakeup')+U('g/L'),F.freshC,v=>{F.freshC=v;refresh();},{step:0.1,min:0,tip:t('tipMakeup')}));
   PBODY.feed.innerHTML='';
   PBODY.feed.append(g, el('div','hint',t('feedHint')));
 }
 function renderEcon(){
   const g = el('div','grid2'); const E = state.econ;
   const U = u => ' <span class="unit">'+u+'</span>';
-  g.appendChild(field(t('eErd'), E.erd?1:0, v=>{E.erd=(v==='1'||v===1);refresh();},
-    {options:[{value:1,label:t('eErdYes')},{value:0,label:t('eErdNo')}]}));
-  g.appendChild(field(t('eErdEff')+U('%'),E.erdEff,v=>{E.erdEff=Math.max(0,Math.min(100,v));refresh();},{step:1,min:0,max:100}));
-  g.appendChild(field(t('ePrice')+U('$/kWh'),E.energy,v=>{E.energy=v;refresh();},{step:0.01,min:0}));
-  g.appendChild(field(t('eHours')+U('h/yr'),E.hours,v=>{E.hours=v;refresh();},{step:100,min:0}));
+  g.appendChild(field(t('eErd'), E.erd?1:0, v=>{E.erd=(v==='1'||v===1);refresh(true);},
+    {options:[{value:1,label:t('eErdYes')},{value:0,label:t('eErdNo')}],tip:t('tipErd')}));
+  if (E.erd)   /* the efficiency does nothing while the device is switched off */
+    g.appendChild(field(t('eErdEff')+U('%'),E.erdEff,v=>{E.erdEff=Math.max(0,Math.min(100,v));refresh();},
+      {step:1,min:0,max:100,tip:t('tipErdEff')}));
+  g.appendChild(field(t('ePrice')+U('$/kWh'),E.energy,v=>{E.energy=v;refresh();},{step:0.01,min:0,tip:t('tipPrice')}));
+  g.appendChild(field(t('eHours')+U('h/yr'),E.hours,v=>{E.hours=v;refresh();},{step:100,min:0,tip:t('tipHours')}));
   PBODY.econ.innerHTML=''; PBODY.econ.appendChild(g);
 }
 
@@ -1494,15 +1536,15 @@ function renderStages(){
     const g0 = el('div','grid2');
     g0.appendChild(field(t('fFrom'), s.feed[0].src+'|'+s.feed[0].port, v=>{
         const [src,port]=v.split('|'); s.feed[0]={src,port,frac:s.feed[0].frac}; refresh(true);
-      }, {options:portOptions(idx,false,true)}));
-    g0.appendChild(field(t('fTake')+U('%'), s.feed[0].frac, v=>{s.feed[0].frac=v;refresh();},{step:5,min:0}));
+      }, {options:portOptions(idx,false,true),tip:t('tipFrom')}));
+    g0.appendChild(field(t('fTake')+U('%'), s.feed[0].frac, v=>{s.feed[0].frac=v;refresh();},{step:5,min:0,tip:t('tipTake')}));
     b.appendChild(g0);
 
     const blendRow = el('div','grid2'); blendRow.style.marginTop='9px';
     if (s.blend){
       blendRow.appendChild(field(t('fBlend'), s.blend.src+'|'+s.blend.port, v=>{
         const [src,port]=v.split('|'); s.blend={src,port,frac:s.blend.frac}; refresh(true);
-      }, {options:portOptions(idx,true,true)}));
+      }, {options:portOptions(idx,true,true),tip:t('tipBlend')}));
       blendRow.appendChild(field(t('fTake')+U('%'), s.blend.frac, v=>{s.blend.frac=v;refresh();},{step:5,min:0}));
       const x = el('button','ic del',t('fBlendDel')); x.style.width='auto'; x.style.padding='0 8px'; x.style.marginTop='6px';
       x.onclick=()=>{ s.blend=null; refresh(true); };
@@ -1520,34 +1562,34 @@ function renderStages(){
       const g1 = el('div','grid2');
       g1.appendChild(field(t('fSweepSrc'), s.sweep.src+'|'+s.sweep.port, v=>{
           const [src,port]=v.split('|'); s.sweep={src,port,frac:s.sweep.frac}; refresh(true);
-        }, {options:portOptions(idx,true,false)}));
+        }, {options:portOptions(idx,true,false),tip:t('tipSweepSrc')}));
       if (s.sweep.src === 'EXT' || s.sweep.src === 'FRESH'){
         g1.appendChild(field(t('fSweepTds')+U('g/L'),
           s.sweep.src==='FRESH'? state.feed.freshC : s.sweepC,
           v=>{ if(s.sweep.src==='FRESH') state.feed.freshC=v; else s.sweepC=v; refresh(); },
           {step:1,min:0,tip:t('tipSweepTds')}));
         g1.appendChild(field(t('fSweepMode'), s.sweepMode, v=>{s.sweepMode=v;refresh(true);},
-          {options:[{value:'ratio',label:t('mRatio')},{value:'flow',label:t('mFlow')}]}));
+          {options:[{value:'ratio',label:t('mRatio')},{value:'flow',label:t('mFlow')}],tip:t('tipSweepMode')}));
         if (s.sweepMode==='flow')
-          g1.appendChild(field(t('fSweepQ')+U('m³/h'), s.sweepQ, v=>{s.sweepQ=v;refresh();},{step:1,min:0}));
+          g1.appendChild(field(t('fSweepQ')+U('m³/h'), s.sweepQ, v=>{s.sweepQ=v;refresh();},{step:1,min:0,tip:t('tipSweepQ')}));
         else
-          g1.appendChild(field(t('fSweepRatio')+U(t('fSweepRatioU')), s.sweepRatio, v=>{s.sweepRatio=v;refresh();},{step:5,min:0}));
+          g1.appendChild(field(t('fSweepRatio')+U(t('fSweepRatioU')), s.sweepRatio, v=>{s.sweepRatio=v;refresh();},{step:5,min:0,tip:t('tipSweepQ')}));
       } else {
-        g1.appendChild(field(t('fTakeSrc')+U(t('fTakeSrcU')), s.sweep.frac, v=>{s.sweep.frac=v;refresh();},{step:5,min:0}));
+        g1.appendChild(field(t('fTakeSrc')+U(t('fTakeSrcU')), s.sweep.frac, v=>{s.sweep.frac=v;refresh();},{step:5,min:0,tip:t('tipTakeSrc')}));
       }
-      g1.appendChild(field(t('fSweepP')+U('bar'), s.pSweep, v=>{s.pSweep=v;refresh();},{step:0.5,min:0}));
+      g1.appendChild(field(t('fSweepP')+U('bar'), s.pSweep, v=>{s.pSweep=v;refresh();},{step:0.5,min:0,tip:t('tipSweepP')}));
       b.appendChild(g1);
     }
 
     b.appendChild(el('div','sect',t('secSpec')));
     const g2 = el('div','grid2');
     g2.appendChild(field(t('fSpecBy'), s.spec, v=>{s.spec=v;refresh(true);},
-      {options:[{value:'recovery',label:t('mRec')},{value:'targetC',label:t('mTarget')}]}));
+      {options:[{value:'recovery',label:t('mRec')},{value:'targetC',label:t('mTarget')}],tip:t('tipSpecBy')}));
     if (s.spec==='recovery')
-      g2.appendChild(field(t('fRec')+U('%'), s.recovery, v=>{s.recovery=v;refresh();},{step:1,min:0}));
+      g2.appendChild(field(t('fRec')+U('%'), s.recovery, v=>{s.recovery=v;refresh();},{step:1,min:0,tip:t('tipRec')}));
     else
-      g2.appendChild(field(t('fTarget')+'<sub>c</sub>'+U('g/L'), s.targetC, v=>{s.targetC=v;refresh();},{step:1,min:0}));
-    g2.appendChild(field(t('fRej')+U('%'), s.R, v=>{s.R=v;refresh();},{step:0.1,min:0}));
+      g2.appendChild(field(t('fTarget')+'<sub>c</sub>'+U('g/L'), s.targetC, v=>{s.targetC=v;refresh();},{step:1,min:0,tip:t('tipTarget')}));
+    g2.appendChild(field(t('fRej')+U('%'), s.R, v=>{s.R=v;refresh();},{step:0.1,min:0,tip:t('tipRej')}));
     g2.appendChild(field(t('fCp'), s.cp, v=>{s.cp=v;refresh();},{step:0.01,min:1,tip:t('tipCp')}));
     b.appendChild(g2);
 

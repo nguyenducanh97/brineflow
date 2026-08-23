@@ -117,6 +117,15 @@ line up, set it as an internal stream instead of the external default — the so
 resulting recycle loop. Until you do, the tool tells you how much external water is entering and
 how much diluate is leaving unrouted.
 
+**Every field explains itself.** Each input carries a `?` with what the parameter means, a
+realistic range, and what it actually changes — in whichever language you have selected. Fields that
+only matter in certain configurations appear only then: *Make-up water TDS* shows up once a stage
+sweeps with fresh water, and *ERD efficiency* only while the recovery device is switched on.
+
+Three parameters deliberately change no process result, which the tooltips say plainly:
+*Electricity price* and *Operating hours* drive the cost figures only, and *Max. pressure* is a
+feasibility check that is never used in the calculation.
+
 **Advisory notes.** Anything that stops the design being buildable — a stage over its pressure
 rating, a routing error, a diverging recycle — is always shown in Performance Summary. Softer
 advice (an OARO suggestion, external sweep water, unrouted diluate, the converged confirmation) is
