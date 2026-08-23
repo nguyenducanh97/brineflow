@@ -117,6 +117,12 @@ line up, set it as an internal stream instead of the external default — the so
 resulting recycle loop. Until you do, the tool tells you how much external water is entering and
 how much diluate is leaving unrouted.
 
+**Advisory notes.** Anything that stops the design being buildable — a stage over its pressure
+rating, a routing error, a diverging recycle — is always shown in Performance Summary. Softer
+advice (an OARO suggestion, external sweep water, unrouted diluate, the converged confirmation) is
+folded away behind the **notes** checkbox in that panel's header, which shows how many are waiting.
+Tick it when you want the commentary; leave it off for a clean panel.
+
 **Reading the results.** KPI tiles (which count up as values change), the process flow diagram with the
 converged numbers on every arrow, the stream table with the overall water and salt balance check, and the
 calculation details.
