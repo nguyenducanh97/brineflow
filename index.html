@@ -56,8 +56,8 @@ body::after{
 :root[data-theme="light"] body::before{display:none}   /* no grid in daylight mode */
 @keyframes drift{to{background-position:46px 46px,46px 46px}}
 @keyframes breathe{from{opacity:.75}to{opacity:1}}
-#rofield{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.9}
-:root[data-theme="light"] #rofield{opacity:.75}
+#rofield{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.72}
+:root[data-theme="light"] #rofield{opacity:.55}
 h1,h2,h3,h4{margin:0}
 button{font:inherit;cursor:pointer}
 input,select{font:inherit}
@@ -2260,137 +2260,142 @@ if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)
 }
 
 /* ==========================================================================
-   12. ATMOSPHERE — an ambient reverse-osmosis field behind the workspace
-   The viewport is the feed channel of a spiral-wound element: a membrane
-   sheet above and below, brine flowing left to right between them. Water
-   molecules cross either sheet into the permeate channels; ions cannot, so
-   they are swept along and pile into concentration-polarisation layers that
-   thicken downstream. The same physics the tool is calculating, drawn quietly.
+   12. ATMOSPHERE — a spiral-wound RO element, drawn as a quiet watermark
+   A cutaway of the real thing: pressure vessel, wound membrane leaves, feed
+   spacer channels and the central permeate tube. Feed enters left and runs
+   along the leaves; permeate crosses the sheets and spirals into the tube;
+   concentrate leaves right. Flow is shown as continuous streamlines, not
+   particles — slow, low contrast, meant to sit behind the work.
    ========================================================================== */
-(function roField(){
+(function roElement(){
   const cv = document.getElementById('rofield'); if (!cv) return;
   const cx = cv.getContext('2d');
-  let w = 0, h = 0, TOP = 0, BOT = 0, water = [], ions = [], phase = 0;
   const light = () => document.documentElement.getAttribute('data-theme') === 'light';
+  let w=0, h=0, G=null, off=0;
 
-  const inChannel = () => TOP + 8 + Math.random()*(BOT - TOP - 16);
-  const newWater = seed => ({
-    x: seed ? Math.random()*w : -12, y: inChannel(),
-    vx: .5 + Math.random()*.95, vy: 0, r: 1.1 + Math.random()*1.8,
-    dir: 0, ph: Math.random()*6.3 });                 // dir 0 = still in the channel
-  const newIon = seed => ({
-    x: seed ? Math.random()*w : -16, y: inChannel(),
-    vx: .26 + Math.random()*.46, vy: (Math.random()-.5)*.3,
-    r: 2.3 + Math.random()*2.0, neg: Math.random() < .5 });
-
-  function size(){
+  function geom(){
     w = cv.width = innerWidth; h = cv.height = innerHeight;
-    TOP = Math.round(h*0.22); BOT = Math.round(h*0.88);   /* clear of the sticky header */
-  }
-  function seed(){
-    water = Array.from({length: Math.round(innerWidth/6)},  ()=>newWater(true));
-    ions  = Array.from({length: Math.round(innerWidth/13)}, ()=>newIon(true));
-  }
-  addEventListener('resize', ()=>{ size(); seed(); });
-  size(); seed();
-
-  const BINS = 26;
-  const densT = new Array(BINS).fill(0), densB = new Array(BINS).fill(0);
-
-  function step(){
-    for (const p of water){
-      p.ph += .02; p.x += p.vx;
-      if (!p.dir){
-        p.y += Math.sin(p.ph)*.22;
-        if (p.y < TOP + 4) p.y = TOP + 4;
-        if (p.y > BOT - 4) p.y = BOT - 4;
-        if (Math.random() < .0022){                    // permeates through a sheet
-          p.dir = Math.random() < .5 ? -1 : 1;
-          p.vy = p.dir * (.30 + Math.random()*.26);
-        }
-      } else {
-        const done = p.dir < 0 ? p.y < TOP - 10 : p.y > BOT + 10;
-        if (!done) p.y += p.vy;
-        else { p.y += Math.sin(p.ph)*.1; p.vx += (0.5 - p.vx)*.01; }
-      }
-      if (p.x > w + 14) Object.assign(p, newWater(false));
+    const y0 = Math.round(h*0.70);                 // element centreline
+    const R  = Math.max(70, Math.min(150, h*0.17));// element radius
+    const x0 = Math.round(w*0.11), x1 = Math.round(w*0.90);
+    const rx = R*0.34;                             // end-face ellipse width
+    const tube = R*0.13;                           // permeate tube half-height
+    const leaves = [];                             // membrane leaf positions
+    for (let k=1;k<=4;k++){
+      const f = k/4.6;
+      leaves.push(y0 - tube - f*(R-tube));
+      leaves.push(y0 + tube + f*(R-tube));
     }
-
-    densT.fill(0); densB.fill(0);
-    for (const q of ions){
-      q.x += q.vx; q.y += q.vy;
-      q.vx *= .99955;                                  // stream slows as it concentrates
-      const hiT = TOP + 3 + q.r, loB = BOT - 3 - q.r;
-      const mid = (TOP + BOT)/2;
-      q.vy += (q.y < mid ? -1 : 1) * .00062;           // pressure drives it to the wall
-      if (q.y <= hiT){ q.y = hiT; q.vy = Math.abs(q.vy)*.34 + .015; q.vx += .012; }
-      if (q.y >= loB){ q.y = loB; q.vy = -Math.abs(q.vy)*.34 - .015; q.vx += .012; }
-      if (q.x > w + 18) Object.assign(q, newIon(false));
-      const b = Math.min(BINS-1, Math.max(0, Math.floor(q.x/w*BINS)));
-      if (q.y < TOP + 70) densT[b]++;
-      if (q.y > BOT - 70) densB[b]++;
-    }
-    phase += .006;
+    G = {y0,R,x0,x1,rx,tube,leaves};
   }
+  geom(); addEventListener('resize', geom);
 
-  function sheet(y, flip, cMem, L){
-    cx.strokeStyle = `rgba(${cMem},${L?.32:.5})`; cx.lineWidth = 1.2;
-    cx.beginPath(); cx.moveTo(0, y+.5); cx.lineTo(w, y+.5); cx.stroke();
-    for (let x=0; x<w; x+=7){
-      const a = .5 + .5*Math.sin(x*.045 + phase*3*(flip?-1:1));
-      cx.globalAlpha = (L?.24:.40) * (.35 + .65*a);
-      cx.beginPath(); cx.moveTo(x+.5, y-2.5); cx.lineTo(x+.5, y+2.5); cx.stroke();
+  /* an Archimedean spiral on the cut face — what a wound element really is */
+  function spiral(cxp, cyp, rx, ry, turns, a){
+    cx.beginPath();
+    const steps = turns*80;
+    for (let i=0;i<=steps;i++){
+      const th = i/steps*turns*Math.PI*2;
+      const r  = (i/steps);
+      const x = cxp + Math.cos(th)*r*rx;
+      const y = cyp + Math.sin(th)*r*ry;
+      i ? cx.lineTo(x,y) : cx.moveTo(x,y);
     }
-    cx.globalAlpha = 1;
-  }
-  function polar(dens, y, dirDown, cPos, L){
-    const bw = w/BINS;
-    for (let b=0;b<BINS;b++){
-      const d = Math.min(1, dens[b]/9); if (d <= .02) continue;
-      const th = 12 + d*46;
-      const y0 = dirDown ? y : y - th, y1 = dirDown ? y + th : y;
-      const g = cx.createLinearGradient(0, dirDown?y0:y1, 0, dirDown?y1:y0);
-      g.addColorStop(0, `rgba(${cPos},${(L?.09:.17)*d})`);
-      g.addColorStop(1, `rgba(${cPos},0)`);
-      cx.fillStyle = g; cx.fillRect(b*bw-1, y0, bw+2, th);
-    }
+    cx.globalAlpha = a; cx.stroke(); cx.globalAlpha = 1;
   }
 
   function draw(){
     cx.clearRect(0,0,w,h);
     const L = light();
-    const cWater = L ? '20,120,150' : '90,215,230';
-    const cPos   = L ? '196,120,26' : '240,168,66';
-    const cNeg   = L ? '108,78,178' : '160,130,255';
-    const cMem   = L ? '20,110,140' : '120,220,235';
+    const ink   = L ? '18,90,116'  : '150,215,235';
+    const feed  = L ? '15,120,128' : '80,215,225';
+    const perm  = L ? '30,110,180' : '90,180,255';
+    const A = k => (L ? k*0.72 : k);               // daylight needs a touch less
+    const {y0,R,x0,x1,rx,tube,leaves} = G;
 
-    polar(densT, TOP, true,  cPos, L);
-    polar(densB, BOT, false, cPos, L);
-    sheet(TOP, false, cMem, L);
-    sheet(BOT, true,  cMem, L);
+    cx.lineCap = 'round'; cx.lineJoin = 'round';
 
-    for (const p of water){
-      const out = p.dir && (p.dir < 0 ? p.y < TOP : p.y > BOT);
-      cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.2832);
-      cx.fillStyle = `rgba(${cWater},${out ? (L?.24:.38) : (L?.40:.66)})`; cx.fill();
+    /* ---- pressure vessel shell ---- */
+    cx.strokeStyle = `rgba(${ink},1)`; cx.lineWidth = 1.4;
+    cx.globalAlpha = A(.20);
+    cx.beginPath();
+    cx.moveTo(x0, y0-R); cx.lineTo(x1, y0-R);
+    cx.moveTo(x0, y0+R); cx.lineTo(x1, y0+R);
+    cx.stroke();
+    cx.beginPath(); cx.ellipse(x1, y0, rx, R, 0, -Math.PI/2, Math.PI/2); cx.stroke();
+    cx.beginPath(); cx.ellipse(x0, y0, rx, R, 0, 0, Math.PI*2); cx.stroke();
+    cx.globalAlpha = 1;
+
+    /* ---- wound leaves on the cut face ---- */
+    cx.strokeStyle = `rgba(${ink},1)`; cx.lineWidth = 1;
+    spiral(x0, y0, rx*0.92, R*0.92, 5, A(.16));
+
+    /* ---- membrane leaves running the length ---- */
+    cx.lineWidth = 1;
+    leaves.forEach((y,i)=>{
+      cx.globalAlpha = A(.10 + (i%2?0:.02));
+      cx.beginPath(); cx.moveTo(x0, y); cx.lineTo(x1, y); cx.stroke();
+    });
+    cx.globalAlpha = 1;
+
+    /* ---- central permeate tube, with its collection holes ---- */
+    cx.strokeStyle = `rgba(${perm},1)`; cx.lineWidth = 1.2; cx.globalAlpha = A(.22);
+    cx.beginPath();
+    cx.moveTo(x0-rx, y0-tube); cx.lineTo(x1+rx*1.6, y0-tube);
+    cx.moveTo(x0-rx, y0+tube); cx.lineTo(x1+rx*1.6, y0+tube);
+    cx.stroke();
+    cx.globalAlpha = A(.16);
+    for (let x=x0+18; x<x1-10; x+=34){
+      cx.beginPath(); cx.moveTo(x, y0-tube); cx.lineTo(x+7, y0-tube);
+      cx.moveTo(x, y0+tube); cx.lineTo(x+7, y0+tube); cx.stroke();
     }
-    for (const q of ions){
-      const c = q.neg ? cNeg : cPos;
-      cx.beginPath(); cx.arc(q.x, q.y, q.r, 0, 6.2832);
-      cx.fillStyle = `rgba(${c},${L?.36:.54})`; cx.fill();
-      cx.beginPath(); cx.arc(q.x, q.y, q.r+2.2, 0, 6.2832);
-      cx.strokeStyle = `rgba(${c},${L?.15:.25})`; cx.lineWidth = 1; cx.stroke();
+    cx.globalAlpha = 1;
+
+    /* ---- feed / concentrate streamlines along the spacer channels ---- */
+    cx.strokeStyle = `rgba(${feed},1)`; cx.lineWidth = 1.6;
+    cx.setLineDash([26, 30]); cx.lineDashOffset = -off;
+    cx.globalAlpha = A(.30);
+    /* one streamline per spacer channel, i.e. between adjacent leaves */
+    const bounds = [y0-R, ...leaves.slice().sort((a,b)=>a-b), y0+R];
+    for (let i=0;i<bounds.length-1;i++){
+      const y = (bounds[i]+bounds[i+1])/2;
+      if (Math.abs(y-y0) < tube*1.4) continue;        /* that gap is the tube */
+      cx.beginPath();
+      cx.moveTo(x0 - rx - w*0.06, y);
+      cx.lineTo(x1 + rx + w*0.05, y);
+      cx.stroke();
     }
+    cx.setLineDash([]); cx.globalAlpha = 1;
+
+    /* ---- permeate: crosses the sheets and spirals into the tube ---- */
+    cx.strokeStyle = `rgba(${perm},1)`; cx.lineWidth = 1.3;
+    cx.setLineDash([14, 20]); cx.lineDashOffset = -off*0.6;
+    cx.globalAlpha = A(.26);
+    leaves.forEach((y,i)=>{
+      const dir = y < y0 ? 1 : -1;                 // toward the tube
+      const yEnd = y0 - dir*tube;
+      for (let k=0;k<3;k++){
+        const xs = x0 + (x1-x0)*(0.22 + k*0.26);
+        cx.beginPath();
+        cx.moveTo(xs, y);
+        cx.bezierCurveTo(xs + (x1-x0)*0.06, y, xs + (x1-x0)*0.10, yEnd, xs + (x1-x0)*0.16, yEnd);
+        cx.stroke();
+      }
+    });
+    /* and out along the tube */
+    cx.lineWidth = 1.8; cx.globalAlpha = A(.34); cx.setLineDash([22, 26]); cx.lineDashOffset = -off*0.8;
+    cx.beginPath(); cx.moveTo(x0, y0); cx.lineTo(x1 + rx*1.6 + w*0.04, y0); cx.stroke();
+    cx.setLineDash([]); cx.globalAlpha = 1;
   }
 
   let frozen = false;
   (function tick(){
     requestAnimationFrame(tick);
     if (document.body.classList.contains('nomotion')){
-      if (!frozen){ draw(); frozen = true; }   /* hold the last frame, still legible */
+      if (!frozen){ draw(); frozen = true; }       /* hold a still, readable frame */
       return;
     }
-    frozen = false; step(); draw();
+    frozen = false; off += 0.32; draw();           /* slow, steady flow */
   })();
 })();
 
