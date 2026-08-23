@@ -1,0 +1,5 @@
+# local scratch
+DEPLOY.md
+*.backup.html
+Thumbs.db
+.DS_Store
