@@ -18,7 +18,6 @@
   --swro:#2f9fe6; --hpro:#9b7bff; --oaro:#f0a23c;
   --panel:rgba(12,24,37,.82); --head:linear-gradient(180deg,#132639,#0e1c2b);
   --field:#0b1a28; --glow:rgba(55,200,207,.30); --shadow:0 2px 24px rgba(0,0,0,.45);
-  --grid:rgba(80,160,190,.055);
   --cols:minmax(340px,0.9fr) 8px minmax(0,1.6fr);
 }
 :root[data-theme="light"]{
@@ -30,7 +29,6 @@
   --swro:#1177b5; --hpro:#6a4fb6; --oaro:#d98514;
   --panel:rgba(255,255,255,.95); --head:linear-gradient(180deg,#fbfdfe,#eef7f9);
   --field:#ffffff; --glow:rgba(15,143,150,.22); --shadow:0 1px 2px rgba(6,40,55,.06),0 6px 18px rgba(6,40,55,.09);
-  --grid:rgba(20,90,120,.05);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -39,12 +37,7 @@ body{
   color:var(--ink); background:var(--bg0); min-height:100vh;
   transition:background .35s, color .35s;
 }
-/* drifting technical grid + depth glows behind everything */
-body::before{
-  content:""; position:fixed; inset:-60px; z-index:-2; pointer-events:none;
-  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
-  background-size:46px 46px; animation:drift 40s linear infinite;
-}
+/* soft depth glows behind everything (no grid) */
 body::after{
   content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
   background:radial-gradient(900px 420px at 12% -4%, rgba(55,200,207,.13), transparent 65%),
@@ -53,11 +46,8 @@ body::after{
   animation:breathe 12s ease-in-out infinite alternate;
 }
 :root[data-theme="light"] body::after{opacity:.5}
-:root[data-theme="light"] body::before{display:none}   /* no grid in daylight mode */
-@keyframes drift{to{background-position:46px 46px,46px 46px}}
 @keyframes breathe{from{opacity:.75}to{opacity:1}}
-#rofield{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.72}
-:root[data-theme="light"] #rofield{opacity:.55}
+#bubbles{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.85}
 h1,h2,h3,h4{margin:0}
 button{font:inherit;cursor:pointer}
 input,select{font:inherit}
@@ -279,11 +269,11 @@ svg.diag{display:block}
 .legend{display:flex;gap:14px;flex-wrap:wrap;padding-top:10px;font-size:11px;color:var(--muted)}
 .legend i{display:inline-block;width:16px;height:0;border-top-width:2.5px;border-top-style:solid;vertical-align:middle;margin-right:5px}
 body.nomotion .flowline,body.nomotion .pulsering,
-body.nomotion header::before,body.nomotion::before,body.nomotion::after,
+body.nomotion header::before,body.nomotion::after,
 body.nomotion .panel,body.nomotion .stage,body.nomotion .msg,body.nomotion .led,
 body.nomotion .stage.tuning::after,body.nomotion .drop,body.nomotion .labchip,
 body.nomotion #boot .bl,body.nomotion #boot .bar i{animation:none!important}
-/* the RO field holds its last frame when motion is off, so the membrane stays visible */
+body.nomotion #bubbles{display:none}
 
 /* ===================== table ===================== */
 .tbl{width:100%;border-collapse:collapse;font-size:12.1px}
@@ -429,7 +419,7 @@ footer{padding:14px 20px 30px;color:var(--muted);font-size:11.5px;text-align:cen
   </div>
 </header>
 
-<canvas id="rofield"></canvas>
+<canvas id="bubbles"></canvas>
 
 <noscript><div class="startup-msg">
   <h2>JavaScript is turned off</h2>
@@ -2260,143 +2250,35 @@ if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)
 }
 
 /* ==========================================================================
-   12. ATMOSPHERE — a spiral-wound RO element, drawn as a quiet watermark
-   A cutaway of the real thing: pressure vessel, wound membrane leaves, feed
-   spacer channels and the central permeate tube. Feed enters left and runs
-   along the leaves; permeate crosses the sheets and spirals into the tube;
-   concentrate leaves right. Flow is shown as continuous streamlines, not
-   particles — slow, low contrast, meant to sit behind the work.
+   12. ATMOSPHERE — rising micro-bubbles behind the workspace
    ========================================================================== */
-(function roElement(){
-  const cv = document.getElementById('rofield'); if (!cv) return;
-  const cx = cv.getContext('2d');
-  const light = () => document.documentElement.getAttribute('data-theme') === 'light';
-  let w=0, h=0, G=null, off=0;
-
-  function geom(){
-    w = cv.width = innerWidth; h = cv.height = innerHeight;
-    const y0 = Math.round(h*0.70);                 // element centreline
-    const R  = Math.max(70, Math.min(150, h*0.17));// element radius
-    const x0 = Math.round(w*0.11), x1 = Math.round(w*0.90);
-    const rx = R*0.34;                             // end-face ellipse width
-    const tube = R*0.13;                           // permeate tube half-height
-    const leaves = [];                             // membrane leaf positions
-    for (let k=1;k<=4;k++){
-      const f = k/4.6;
-      leaves.push(y0 - tube - f*(R-tube));
-      leaves.push(y0 + tube + f*(R-tube));
-    }
-    G = {y0,R,x0,x1,rx,tube,leaves};
-  }
-  geom(); addEventListener('resize', geom);
-
-  /* an Archimedean spiral on the cut face — what a wound element really is */
-  function spiral(cxp, cyp, rx, ry, turns, a){
-    cx.beginPath();
-    const steps = turns*80;
-    for (let i=0;i<=steps;i++){
-      const th = i/steps*turns*Math.PI*2;
-      const r  = (i/steps);
-      const x = cxp + Math.cos(th)*r*rx;
-      const y = cyp + Math.sin(th)*r*ry;
-      i ? cx.lineTo(x,y) : cx.moveTo(x,y);
-    }
-    cx.globalAlpha = a; cx.stroke(); cx.globalAlpha = 1;
-  }
-
-  function draw(){
+(function bubbles(){
+  const cv = document.getElementById('bubbles'), cx = cv.getContext('2d');
+  let w=0, h=0, parts=[], raf=null;
+  const size = ()=>{ w=cv.width=innerWidth; h=cv.height=innerHeight; };
+  const seed = ()=>{ parts = Array.from({length:Math.round(innerWidth/22)}, ()=>({
+      x:Math.random()*w, y:Math.random()*h, r:.7+Math.random()*3.1,
+      v:.16+Math.random()*.55, drift:(Math.random()-.5)*.28, ph:Math.random()*6.3 })); };
+  addEventListener('resize', ()=>{ size(); seed(); });
+  size(); seed();
+  const tick = ()=>{
+    raf = requestAnimationFrame(tick);
+    if (document.body.classList.contains('nomotion')) { cx.clearRect(0,0,w,h); return; }
     cx.clearRect(0,0,w,h);
-    const L = light();
-    const ink   = L ? '18,90,116'  : '150,215,235';
-    const feed  = L ? '15,120,128' : '80,215,225';
-    const perm  = L ? '30,110,180' : '90,180,255';
-    const A = k => (L ? k*0.72 : k);               // daylight needs a touch less
-    const {y0,R,x0,x1,rx,tube,leaves} = G;
-
-    cx.lineCap = 'round'; cx.lineJoin = 'round';
-
-    /* ---- pressure vessel shell ---- */
-    cx.strokeStyle = `rgba(${ink},1)`; cx.lineWidth = 1.4;
-    cx.globalAlpha = A(.20);
-    cx.beginPath();
-    cx.moveTo(x0, y0-R); cx.lineTo(x1, y0-R);
-    cx.moveTo(x0, y0+R); cx.lineTo(x1, y0+R);
-    cx.stroke();
-    cx.beginPath(); cx.ellipse(x1, y0, rx, R, 0, -Math.PI/2, Math.PI/2); cx.stroke();
-    cx.beginPath(); cx.ellipse(x0, y0, rx, R, 0, 0, Math.PI*2); cx.stroke();
-    cx.globalAlpha = 1;
-
-    /* ---- wound leaves on the cut face ---- */
-    cx.strokeStyle = `rgba(${ink},1)`; cx.lineWidth = 1;
-    spiral(x0, y0, rx*0.92, R*0.92, 5, A(.16));
-
-    /* ---- membrane leaves running the length ---- */
-    cx.lineWidth = 1;
-    leaves.forEach((y,i)=>{
-      cx.globalAlpha = A(.10 + (i%2?0:.02));
-      cx.beginPath(); cx.moveTo(x0, y); cx.lineTo(x1, y); cx.stroke();
+    const light = document.documentElement.getAttribute('data-theme')==='light';
+    parts.forEach(p=>{
+      p.y -= p.v; p.ph += .015; p.x += Math.sin(p.ph)*p.drift;
+      if (p.y < -12){ p.y = h+12; p.x = Math.random()*w; }
+      const a = light ? .13 : .30;
+      cx.beginPath(); cx.arc(p.x,p.y,p.r,0,6.2832);
+      cx.fillStyle = light ? `rgba(20,120,150,${a*(p.r/3.6)})` : `rgba(90,215,230,${a*(p.r/3.6)})`;
+      cx.fill();
+      if (p.r > 2.2){ cx.beginPath(); cx.arc(p.x,p.y,p.r,0,6.2832);
+        cx.strokeStyle = light ? 'rgba(20,120,150,.10)' : 'rgba(120,235,245,.18)';
+        cx.lineWidth=.7; cx.stroke(); }
     });
-    cx.globalAlpha = 1;
-
-    /* ---- central permeate tube, with its collection holes ---- */
-    cx.strokeStyle = `rgba(${perm},1)`; cx.lineWidth = 1.2; cx.globalAlpha = A(.22);
-    cx.beginPath();
-    cx.moveTo(x0-rx, y0-tube); cx.lineTo(x1+rx*1.6, y0-tube);
-    cx.moveTo(x0-rx, y0+tube); cx.lineTo(x1+rx*1.6, y0+tube);
-    cx.stroke();
-    cx.globalAlpha = A(.16);
-    for (let x=x0+18; x<x1-10; x+=34){
-      cx.beginPath(); cx.moveTo(x, y0-tube); cx.lineTo(x+7, y0-tube);
-      cx.moveTo(x, y0+tube); cx.lineTo(x+7, y0+tube); cx.stroke();
-    }
-    cx.globalAlpha = 1;
-
-    /* ---- feed / concentrate streamlines along the spacer channels ---- */
-    cx.strokeStyle = `rgba(${feed},1)`; cx.lineWidth = 1.6;
-    cx.setLineDash([26, 30]); cx.lineDashOffset = -off;
-    cx.globalAlpha = A(.30);
-    /* one streamline per spacer channel, i.e. between adjacent leaves */
-    const bounds = [y0-R, ...leaves.slice().sort((a,b)=>a-b), y0+R];
-    for (let i=0;i<bounds.length-1;i++){
-      const y = (bounds[i]+bounds[i+1])/2;
-      if (Math.abs(y-y0) < tube*1.4) continue;        /* that gap is the tube */
-      cx.beginPath();
-      cx.moveTo(x0 - rx - w*0.06, y);
-      cx.lineTo(x1 + rx + w*0.05, y);
-      cx.stroke();
-    }
-    cx.setLineDash([]); cx.globalAlpha = 1;
-
-    /* ---- permeate: crosses the sheets and spirals into the tube ---- */
-    cx.strokeStyle = `rgba(${perm},1)`; cx.lineWidth = 1.3;
-    cx.setLineDash([14, 20]); cx.lineDashOffset = -off*0.6;
-    cx.globalAlpha = A(.26);
-    leaves.forEach((y,i)=>{
-      const dir = y < y0 ? 1 : -1;                 // toward the tube
-      const yEnd = y0 - dir*tube;
-      for (let k=0;k<3;k++){
-        const xs = x0 + (x1-x0)*(0.22 + k*0.26);
-        cx.beginPath();
-        cx.moveTo(xs, y);
-        cx.bezierCurveTo(xs + (x1-x0)*0.06, y, xs + (x1-x0)*0.10, yEnd, xs + (x1-x0)*0.16, yEnd);
-        cx.stroke();
-      }
-    });
-    /* and out along the tube */
-    cx.lineWidth = 1.8; cx.globalAlpha = A(.34); cx.setLineDash([22, 26]); cx.lineDashOffset = -off*0.8;
-    cx.beginPath(); cx.moveTo(x0, y0); cx.lineTo(x1 + rx*1.6 + w*0.04, y0); cx.stroke();
-    cx.setLineDash([]); cx.globalAlpha = 1;
-  }
-
-  let frozen = false;
-  (function tick(){
-    requestAnimationFrame(tick);
-    if (document.body.classList.contains('nomotion')){
-      if (!frozen){ draw(); frozen = true; }       /* hold a still, readable frame */
-      return;
-    }
-    frozen = false; off += 0.32; draw();           /* slow, steady flow */
-  })();
+  };
+  tick();
 })();
 
 /* ==========================================================================
