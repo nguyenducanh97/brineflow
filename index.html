@@ -464,7 +464,8 @@ footer{padding:14px 20px 30px;color:var(--muted);font-size:11.5px;text-align:cen
       <option value="sketch" data-i18n="presetSketch">Sketch example: SWRO→SWRO→HPRO→OARO</option>
       <option value="swro" data-i18n="presetSwro">Conventional 2-stage SWRO</option>
       <option value="zld" data-i18n="presetZld">Brine concentration with OARO ×2</option>
-      <option value="promise3" data-i18n="presetPromise">PROMISE 3안 — RO1·RO2·NF·UHPRO·OARO (33 g/L, 17 °C)</option>
+      <option value="promise3" data-i18n="presetPromise">PROMISE 3안 — full scale (33 g/L, 17 °C)</option>
+      <option value="promise3d" data-i18n="presetPromiseD">PROMISE 3안 — slide 13, concentrate train 1/11.25</option>
     </select>
     <button class="tb" id="btnLang" data-i18n-t="ttLang">🇰🇷 한국어</button>
     <button class="tb" id="btnTheme" data-i18n-t="ttTheme">☀ Light</button>
@@ -574,7 +575,8 @@ en:{
   tagline:'SWRO · HPRO · OARO train simulator',
   presetPick:'Load preset…', presetSketch:'Sketch example: SWRO→SWRO→HPRO→OARO',
   presetSwro:'Conventional 2-stage SWRO', presetZld:'Brine concentration with OARO ×2',
-  presetPromise:'PROMISE 3안 — RO1·RO2·NF·UHPRO·OARO (33 g/L, 17 °C)',
+  presetPromise:'PROMISE 3안 — full scale (33 g/L, 17 °C)',
+  presetPromiseD:'PROMISE 3안 — slide 13, concentrate train 1/11.25',
 
   btnLight:'☀ Light', btnDark:'🌙 Dark', btnMotionOn:'◉ Motion', btnMotionOff:'◌ Motion',
   btnLayout:'⌗ Layout', btnSave:'💾 Save', btnLoad:'📂 Load', btnCsv:'⭳ CSV', btnReport:'📄 Report',
@@ -730,7 +732,8 @@ ko:{
   tagline:'SWRO · HPRO · OARO 공정 시뮬레이터',
   presetPick:'프리셋 불러오기…', presetSketch:'스케치 예시: SWRO→SWRO→HPRO→OARO',
   presetSwro:'일반적인 2단 SWRO', presetZld:'OARO ×2 농축 공정',
-  presetPromise:'PROMISE 3안 — RO1·RO2·NF·UHPRO·OARO (33 g/L, 17 °C)',
+  presetPromise:'PROMISE 3안 — full scale (33 g/L, 17 °C)',
+  presetPromiseD:'PROMISE 3안 — slide 13, concentrate train 1/11.25',
 
   btnLight:'☀ 밝게', btnDark:'🌙 어둡게', btnMotionOn:'◉ 애니메이션', btnMotionOff:'◌ 애니메이션',
   btnLayout:'⌗ 배치 초기화', btnSave:'💾 저장', btnLoad:'📂 불러오기', btnCsv:'⭳ CSV', btnReport:'📄 보고서',
@@ -997,6 +1000,32 @@ function loadPreset(which){
     const d = mkStage('OARO','OARO #2');        d.recovery=12; d.sweepC=105; d.sweepMode='flow'; d.sweepQ=35;
     b.blend = {src:c.id, port:'dil', frac:100};
     state.stages=[a,b,c,d];
+  } else if (which === 'promise3d'){
+    /* PROMISE option 3 as drawn on slide 13: RO1 stays full scale, and only
+       1/11.25 of its brine is sent on, so the concentrate train runs at the
+       demonstration-plant scale. This reproduces the slide's own numbers. */
+    state.units.flow = 'm3d';
+    Object.assign(state.feed, { Q:2631.6, C:33.0, T:17, preLoss:5.0, freshC:0.5 });
+    Object.assign(state.econ, { erd:true, erdEff:96, energy:0.08, hours:8000 });
+    Object.assign(state.targets, { on:true, recovery:80, prodTDS:500, sec:2.2 });
+
+    const ro1 = mkStage('SWRO','1st RO');   ro1.feed=[{src:'FEED',port:'conc',frac:100}];
+    ro1.recovery=40.0; ro1.R=99.41; ro1.cp=1.0; ro1.ndp=5; ro1.dP=2; ro1.pMax=83;
+    const ro2 = mkStage('SWRO','2nd RO');
+    ro2.feed=[{src:'PREV',port:'conc',frac:8.887}];      /* 133.3 of the 1,500 brine */
+    ro2.recovery=25.0; ro2.R=99.77; ro2.cp=1.0; ro2.ndp=5; ro2.dP=2; ro2.pMax=83;
+    const nf  = mkStage('NF','NF');
+    nf.recovery=70.0;  nf.R=27.97; nf.cp=1.0; nf.ndp=3; nf.dP=2; nf.pMax=41;
+    const uh  = mkStage('HPRO','UHPRO');
+    uh.recovery=37.9;  uh.R=98.83; uh.cp=1.0; uh.ndp=5; uh.dP=3; uh.pMax=120;
+    uh.feed=[{src:nf.id,port:'perm',frac:100}];
+    const oa  = mkStage('OARO','OARO');
+    oa.recovery=74.5;  oa.R=32.85; oa.cp=1.0; oa.ndp=5; oa.dP=3; oa.pMax=100; oa.pSweep=2;
+    oa.feed=[{src:uh.id,port:'conc',frac:100}];
+    oa.blend={src:nf.id,port:'conc',frac:100};
+    oa.sweep={src:'EXT',port:'perm',frac:100}; oa.sweepMode='flow'; oa.sweepQ=0; oa.sweepC=0;
+    uh.blend={src:oa.id,port:'dil',frac:100};
+    state.stages=[ro1,ro2,nf,uh,oa];
   } else if (which === 'promise3'){
     /* PROMISE demonstration plant, design option 3 (3안):
        AutoStrainer - UF - 1stRO - 2ndRO - NF - UHPRO - OARO
@@ -1917,7 +1946,7 @@ function renderDiagram(R){
      filter, and arrowheads with an explicit fill rather than context-stroke. */
   const MARK = {}; MARK[TEAL]='aT'; MARK[BLUE]='aB'; MARK[AMB]='aA'; MARK[GREY]='aG';
   const pipe=(d,color,gradId,Q,dashed)=>{
-    const moving = !dashed && Q > 0.05 && motionOn();
+    const moving = Q > 0.05 && motionOn();
     if (!dashed) svg.appendChild(mk('path',{d,stroke:color,'stroke-width':6.5,fill:'none',
       'stroke-linecap':'round',opacity:.14}));            // halo
     const base = mk('path',{d,stroke:color,'stroke-width':dashed?1.8:2.4,fill:'none',
@@ -1927,8 +1956,8 @@ function renderDiagram(R){
     svg.appendChild(base);
     if (!moving) return;
     const spd = Math.min(3.4, Math.max(0.6, 62/Math.max(Q,3)));
-    const fl = mk('path',{d,stroke:color,'stroke-width':3.6,fill:'none','stroke-linecap':'round',
-      'stroke-dasharray':'5 13',class:'flowline',opacity:.75});
+    const fl = mk('path',{d,stroke:color,'stroke-width':dashed?2.6:3.6,fill:'none','stroke-linecap':'round',
+      'stroke-dasharray':'5 13',class:'flowline',opacity:dashed?.6:.75});
     fl.style.animationDuration = spd.toFixed(2)+'s';
     svg.appendChild(fl);
     for (let k=0;k<2;k++){                       // droplets riding the pipe
@@ -2000,15 +2029,20 @@ function renderDiagram(R){
     /* inlet */
     const prevX = i===0 ? 166 : X0+(i-1)*(BW+GAP)+BW;
     const ref = s.feed[0];
-    const chain = (ref.src==='PREV') || (i>0 && ref.src===state.stages[i-1].id && ref.port==='conc') || (i===0 && ref.src==='FEED');
+    /* adjacent stages are drawn as a straight moving pipe whatever port they use;
+       only a genuinely non-adjacent route gets the curved dashed path */
+    const prevSt = i>0 ? state.stages[i-1] : null;
+    const chain = (ref.src==='PREV') || (prevSt && ref.src===prevSt.id) || (i===0 && ref.src==='FEED');
+    const viaPort = chain && prevSt && ref.src===prevSt.id && ref.port!=='conc' ? PORTS[ref.port] : '';
     if (chain){
       pipe(L(prevX+2,YC,x-4,YC),TEAL,'gT',r.fd.Q);
       txt((prevX+x)/2, YC-10, f(r.fd.Q,1)+' '+FU(),{size:9,mono:true,fill:INK2});
       txt((prevX+x)/2, YC+16, f(r.fd.C,1)+' g/L',{size:9,mono:true,fill:MUT});
+      if (viaPort) txt((prevX+x)/2, YC+28, viaPort,{size:8.4,mono:true,fill:MUT});
     } else {
       const si = state.stages.findIndex(z=>z.id===ref.src);
       const sx = ref.src==='FEED' ? 166 : (si>=0 ? X0+si*(BW+GAP)+BW/2 : x-40);
-      pipe(CV(sx,YC+BH/2,x-4,YC,124),GREY,'gT',0,true);
+      pipe(CV(sx,YC+BH/2,x-4,YC,124),GREY,'gT',r.fd.Q,true);
       txt((sx+x)/2, YC+BH/2+96, '↩ '+f(r.fd.Q,1)+' '+FU()+' @ '+f(r.fd.C,1)+' g/L',{size:9,mono:true,fill:MUT});
     }
     /* permeate riser */
