@@ -699,7 +699,8 @@ en:{
   dStage:'STAGE', dNa:'model n/a', dSweep:'sweep', dDil:'diluate', dCout:'C_out', dOf:'of',
   lgFeed:'Feed / concentrate', lgPerm:'Permeate (product)', lgSweep:'OARO sweep / diluate', lgRoute:'Routed / recycled stream',
   /* ---- stream table ---- */
-  thSec:'SEC', rPlantSec:'▸ Whole plant, net of energy recovery',
+  thSec:'SEC', thSecOf:'of product', rPlantSec:'▸ Whole plant, net of energy recovery',
+  rErdRow:'Energy recovery', rErdNote:'credit returned by the ERD',
   thStage:'Stage', thStream:'Stream', thQ:'Q', thTds:'TDS', thSalt:'Salt', thP:'P', thNote:'Note',
   rFeed:'Feed', rRaw:'Raw seawater', rPre:'Pretreatment', rTo1:'To 1st stage', rInlet:'system inlet',
   rLoss:(p)=>`−${p} % water loss`, rFeedIn:'Feed in', rSweepIn:'Sweep in', rPerm:'Permeate',
@@ -861,7 +862,8 @@ ko:{
   dPreTitle:'전처리', dPreTech1:'Auto Strainer', dPreTech2:'→ UF (또는 DMF)', dBus:'투과수  라인', dProduct:'생산수', dBrine:'농축수 / C',
   dStage:'스테이지', dNa:'모델 미적용', dSweep:'스윕', dDil:'희석수', dCout:'유출 C', dOf:'/',
   lgFeed:'유입수 / 농축수', lgPerm:'투과수 (생산수)', lgSweep:'OARO 스윕 / 희석수', lgRoute:'연결 / 재순환 스트림',
-  thSec:'비에너지', rPlantSec:'▸ 전체 공정 (에너지 회수 반영)',
+  thSec:'비에너지', thSecOf:'생산수 기준', rPlantSec:'▸ 전체 공정 (에너지 회수 반영)',
+  rErdRow:'에너지 회수', rErdNote:'ERD 회수량',
   thStage:'스테이지', thStream:'스트림', thQ:'유량', thTds:'TDS', thSalt:'염', thP:'압력', thNote:'비고',
   rFeed:'유입수', rRaw:'원수 해수', rPre:'전처리', rTo1:'1단 공급', rInlet:'시스템 유입',
   rLoss:(p)=>`−${p} % 수량 손실`, rFeedIn:'유입', rSweepIn:'스윕 유입', rPerm:'투과수',
@@ -2314,20 +2316,26 @@ function renderDiagram(R){
 function renderTable(R){
   const C = c => mgl()? f(c*1000,0) : f(c,3);
   const T = state.feed.T;
+  /* One denominator for the whole column: the plant's product. A stage's own
+     SEC per m3 of its own permeate is a different number and lives in the
+     calculation details; it cannot be added down a column because each stage
+     would be dividing by a different flow. */
+  const kSec  = (PDIV()/36)/Math.max(R.prod.Q,1e-9);
+  const share = r => (r.Wp + r.Wsweep)*kSec;
   const row=(a,b,Q,c,P,note,cls,sec)=>`<tr class="${cls||''}"><td>${a}</td><td>${b}</td><td>${f(Q,2)}</td>
       <td>${C(c)}</td><td>${f(Q*c,1)}</td><td>${f(osm(c,T),1)}</td><td>${f(P,1)}</td>
       <td>${sec===undefined?'':f(sec,3)}</td>
       <td style="text-align:left;color:var(--muted)">${note||''}</td></tr>`;
   let h = `<thead><tr><th>${t('thStage')}</th><th>${t('thStream')}</th><th>${t('thQ')}<br>${FU()}</th><th>${t('thTds')}<br>${mgl()?'mg/L':'g/L'}</th>
     <th>${t('thSalt')}<br>${MU()}</th><th><span style="text-transform:none">π</span><br>bar</th><th>${t('thP')}<br>bar</th>
-    <th>${t('thSec')}<br>kWh/m³</th><th>${t('thNote')}</th></tr></thead><tbody>`;
+    <th>${t('thSec')}<br>kWh/m³ ${t('thSecOf')}</th><th>${t('thNote')}</th></tr></thead><tbody>`;
   h += row(t('rFeed'),t('rRaw'),state.feed.Q,state.feed.C,0,t('rInlet'),'grp');
   h += row(t('rPre'),t('rTo1'),R.feedStream.Q,R.feedStream.C,0,t('rLoss')(f(state.feed.preLoss,1)));
   R.res.forEach(r=>{
     const s=r.s;
     h += `<tr class="grp"><td colspan="7">▸ ${s.name} <span class="pill" style="background:${TYPECOLOR[s.type]}">${s.type}</span>
           &nbsp; r = ${f(r.r*100,1)} % · P_feed = ${f(r.Preq,1)} bar · ${t('rPump')} ${f(r.Wp+r.Wsweep,1)} kW</td>
-          <td><b>${f(r.secStage,3)}</b></td><td></td></tr>`;
+          <td><b>${f(share(r),3)}</b></td><td></td></tr>`;
     h += row('',t('rFeedIn'),r.fd.Q,r.fd.C,r.fd.P,r.fd.parts.map(p=>p.label).join(' + '));
     if (s.type==='OARO') h += row('',t('rSweepIn'),r.sw.Q,r.sw.C,r.sw.P,r.sw.label);
     h += row('', s.type==='OARO'?t('rThrough'):t('rPerm'), r.perm.Q,r.perm.C,r.perm.P,
@@ -2350,6 +2358,8 @@ function renderTable(R){
         <b>${f(inQ-outQ,4)}</b> ${FU()} (${t('rError')} ${f(inQ?Math.abs(inQ-outQ)/inQ*100:0,4)} %)</td></tr>`;
   h += `<tr><td>${t('rSaltRow')}</td><td>${t('rInOut')}</td><td colspan="7" style="text-align:left">${f(inS,1)} − ${f(outS,1)} =
         <b>${f(inS-outS,4)}</b> ${MU()} (${t('rError')} ${f(inS?Math.abs(inS-outS)/inS*100:0,4)} %)</td></tr>
+        <tr><td>${t('rErdRow')}</td><td>${t('rErdNote')}</td><td colspan="5"></td>
+            <td>−${f(R.erdKW*kSec,3)}</td><td></td></tr>
         <tr class="grp"><td colspan="7">${t('rPlantSec')}</td><td><b>${f(R.sec,3)}</b></td><td></td></tr></tbody>`;
 
   PBODY.table.innerHTML = `<table class="tbl">${h}</table>`;
@@ -2670,10 +2680,12 @@ $('#fileIn').onchange = e=>{
 };
 $('#btnCsv').onclick = ()=>{
   const R=LAST, T=state.feed.T;
-  const rows=[['Stage','Stream','Q','TDS_g_L','TDS_mg_L','Salt','Osmotic_bar','Pressure_bar','Stage_SEC_kWh_m3']];
+  const rows=[['Stage','Stream','Q','TDS_g_L','TDS_mg_L','Salt','Osmotic_bar','Pressure_bar','Stage_SEC_own_permeate','Stage_share_of_plant_SEC']];
   rows.push(['Feed','Raw seawater',state.feed.Q,state.feed.C,state.feed.C*1000,state.feed.Q*state.feed.C,osm(state.feed.C,T),0]);
   R.res.forEach(r=>{
-    const add=(nm,st)=>rows.push([r.s.name,nm,st.Q,st.C,st.C*1000,st.Q*st.C,osm(st.C,T),st.P,r.secStage]);
+    const kS=(PDIV()/36)/Math.max(R.prod.Q,1e-9);
+    const add=(nm,st)=>rows.push([r.s.name,nm,st.Q,st.C,st.C*1000,st.Q*st.C,osm(st.C,T),st.P,
+                                  r.secStage,(r.Wp+r.Wsweep)*kS]);
     add('Feed in',r.fd); if(r.s.type==='OARO') add('Sweep in',r.sw);
     add(r.s.type==='OARO'?'Through membrane':'Permeate',r.perm);
     if(r.s.type==='OARO') add('Diluate',r.dil); add('Concentrate',r.conc);
