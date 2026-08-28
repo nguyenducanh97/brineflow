@@ -464,8 +464,28 @@ footer{padding:14px 20px 30px;color:var(--muted);font-size:11.5px;text-align:cen
       <option value="sketch" data-i18n="presetSketch">Sketch example: SWRO→SWRO→HPRO→OARO</option>
       <option value="swro" data-i18n="presetSwro">Conventional 2-stage SWRO</option>
       <option value="zld" data-i18n="presetZld">Brine concentration with OARO ×2</option>
-      <option value="promise3" data-i18n="presetPromise">PROMISE 3안 — full scale (33 g/L, 17 °C)</option>
-      <option value="promise3d" data-i18n="presetPromiseD">PROMISE 3안 — slide 13, concentrate train 1/11.25</option>
+      <optgroup label="PROMISE 3안 — full-scale equivalent">
+        <option value="p3-01-full">Case 01 &nbsp;7 °C, 30,000 mg/L</option>
+        <option value="p3-02-full">Case 02 &nbsp;17 °C, 30,000 mg/L</option>
+        <option value="p3-03-full">Case 03 &nbsp;27 °C, 30,000 mg/L</option>
+        <option value="p3-04-full">Case 04 &nbsp;7 °C, 33,000 mg/L</option>
+        <option value="p3-05-full">Case 05 &nbsp;17 °C, 33,000 mg/L</option>
+        <option value="p3-06-full">Case 06 &nbsp;27 °C, 33,000 mg/L</option>
+        <option value="p3-07-full">Case 07 &nbsp;7 °C, 35,000 mg/L</option>
+        <option value="p3-08-full">Case 08 &nbsp;17 °C, 35,000 mg/L</option>
+        <option value="p3-09-full">Case 09 &nbsp;27 °C, 35,000 mg/L</option>
+      </optgroup>
+      <optgroup label="PROMISE 3안 — down-scale side-train (1/11.25)">
+        <option value="p3-01-ds">Case 01 &nbsp;7 °C, 30,000 mg/L</option>
+        <option value="p3-02-ds">Case 02 &nbsp;17 °C, 30,000 mg/L</option>
+        <option value="p3-03-ds">Case 03 &nbsp;27 °C, 30,000 mg/L</option>
+        <option value="p3-04-ds">Case 04 &nbsp;7 °C, 33,000 mg/L</option>
+        <option value="p3-05-ds">Case 05 &nbsp;17 °C, 33,000 mg/L</option>
+        <option value="p3-06-ds">Case 06 &nbsp;27 °C, 33,000 mg/L</option>
+        <option value="p3-07-ds">Case 07 &nbsp;7 °C, 35,000 mg/L</option>
+        <option value="p3-08-ds">Case 08 &nbsp;17 °C, 35,000 mg/L</option>
+        <option value="p3-09-ds">Case 09 &nbsp;27 °C, 35,000 mg/L</option>
+      </optgroup>
     </select>
     <button class="tb" id="btnLang" data-i18n-t="ttLang">🇰🇷 한국어</button>
     <button class="tb" id="btnTheme" data-i18n-t="ttTheme">☀ Light</button>
@@ -671,7 +691,8 @@ en:{
   tSweeps:'sweeps', tRes:'res', tStages:'stages', tRec:'REC', tSec:'SEC', tLoop:'recycle loop unbounded',
   tInit:'initialising…',
   /* ---- diagram ---- */
-  dFeed:'FEED', dPre1:'PRE-', dPre2:'TREAT', dBus:'PERMEATE  BUS', dProduct:'PRODUCT', dBrine:'BRINE / C',
+  dFeed:'FEED', dPre1:'PRE-', dPre2:'TREAT',
+  dPreTitle:'PRETREATMENT', dPreTech1:'Auto Strainer', dPreTech2:'→ UF (or DMF)', dBus:'PERMEATE  BUS', dProduct:'PRODUCT', dBrine:'BRINE / C',
   dStage:'STAGE', dSweep:'sweep', dDil:'diluate', dCout:'C_out', dOf:'of',
   lgFeed:'Feed / concentrate', lgPerm:'Permeate (product)', lgSweep:'OARO sweep / diluate', lgRoute:'Routed / recycled stream',
   /* ---- stream table ---- */
@@ -820,7 +841,8 @@ ko:{
   tSolver:'SOLVER', tConv:'수렴 완료', tLimit:'압력 한계 초과', tDiv:'발산',
   tSweeps:'회 반복', tRes:'잔차', tStages:'스테이지', tRec:'회수율', tSec:'비에너지', tLoop:'재순환 루프 발산',
   tInit:'초기화 중…',
-  dFeed:'유입수', dPre1:'전처리', dPre2:'', dBus:'투과수  라인', dProduct:'생산수', dBrine:'농축수 / C',
+  dFeed:'유입수', dPre1:'전처리', dPre2:'',
+  dPreTitle:'전처리', dPreTech1:'Auto Strainer', dPreTech2:'→ UF (또는 DMF)', dBus:'투과수  라인', dProduct:'생산수', dBrine:'농축수 / C',
   dStage:'스테이지', dSweep:'스윕', dDil:'희석수', dCout:'유출 C', dOf:'/',
   lgFeed:'유입수 / 농축수', lgPerm:'투과수 (생산수)', lgSweep:'OARO 스윕 / 희석수', lgRoute:'연결 / 재순환 스트림',
   thStage:'스테이지', thStream:'스트림', thQ:'유량', thTds:'TDS', thSalt:'염', thP:'압력', thNote:'비고',
@@ -984,6 +1006,63 @@ let state = { feed:{ Q:100, C:35, T:20, preLoss:3, freshC:0.5 },
 const FU   = () => (state.units && state.units.flow === 'm3d') ? 'm³/d' : 'm³/h';
 const PDIV = () => (state.units && state.units.flow === 'm3d') ? 864 : 36;
 
+/* The nine option-3 design cases from the project deck (slides 50-58).
+   Rejections are back-calculated from the deck's own stream salinities, so the
+   tool regenerates its numbers rather than assuming a membrane model.
+   pd = the deck's own stage feed pressures, for side-by-side comparison. */
+const P3CASES = [
+  {id:'01', T:7, C:30, r1:40, R1:99.6747, r2:25, R2:99.8698, rn:70, Rn:28.0023, ru:39.67, Ru:98.9953, ro:72.784, Ro:31.2305,
+   pd:[41.8,68.1,40.1,101.7,99.8], prod:[2105.3,270.3], ds:[1098.2,127.1]},
+  {id:'02', T:17, C:30, r1:40, R1:99.411, r2:25, R2:99.765, rn:70, Rn:27.9041, ru:37.865, Ru:98.8328, ro:74.34, Ro:32.6803,
+   pd:[39.1,62.0,38.2,90.5,88.5], prod:[2105.3,340], ds:[1098.2,204.6]},
+  {id:'03', T:27, C:30, r1:40, R1:98.9763, r2:25, R2:99.5929, rn:70, Rn:27.8008, ru:36.016, Ru:98.6601, ro:75.843, Ro:34.057,
+   pd:[38.0,59.1,36.8,82.0,80.0], prod:[2105.3,438.2], ds:[1098.2,329.5]},
+  {id:'04', T:7, C:33, r1:40, R1:99.6745, r2:25, R2:99.8698, rn:70, Rn:28.068, ru:39.501, Ru:98.9952, ro:72.875, Ro:31.3819,
+   pd:[44.8,72.9,42.9,108.5,106.6], prod:[2105.3,296.2], ds:[1098.2,139.6]},
+  {id:'05', T:17, C:33, r1:40, R1:99.4103, r2:25, R2:99.7653, rn:70, Rn:27.9701, ru:37.645, Ru:98.8328, ro:74.527, Ro:32.8471,
+   pd:[42.3,67.0,40.9,96.9,94.9], prod:[2105.3,372.5], ds:[1098.2,224.9]},
+  {id:'06', T:27, C:33, r1:40, R1:98.9745, r2:25, R2:99.5931, rn:70, Rn:27.8677, ru:35.777, Ru:98.6608, ro:76.041, Ro:34.2427,
+   pd:[41.4,64.3,39.5,88.0,86.0], prod:[2105.3,480], ds:[1098.2,362.5]},
+  {id:'07', T:7, C:35, r1:40, R1:99.6663, r2:25, R2:99.8666, rn:70, Rn:26.9738, ru:39.429, Ru:98.989, ro:72.938, Ro:31.4366,
+   pd:[46.9,76.2,44.3,113.6,111.7], prod:[2105.3,318.3], ds:[1098.2,151.2]},
+  {id:'08', T:17, C:35, r1:40, R1:99.3949, r2:25, R2:99.7594, rn:70, Rn:26.8775, ru:37.558, Ru:98.8261, ro:74.547, Ro:32.9201,
+   pd:[44.4,70.4,42.4,101.7,99.7], prod:[2105.3,400.5], ds:[1098.2,243.9]},
+  {id:'09', T:27, C:35, r1:40, R1:98.9477, r2:25, R2:99.583, rn:70, Rn:26.7757, ru:35.659, Ru:98.6533, ro:76.139, Ro:34.3175,
+   pd:[43.7,67.9,41.0,92.5,90.5], prod:[2105.3,516.9], ds:[1098.2,393.6]},
+];
+
+function buildP3(caseId, basis){
+  /* basis 'full'  : the concentrate train handles all of the 2nd RO brine
+     basis 'ds'    : down-scale side-train - only 1/11.25 of the brine is sent on,
+                     which is the plant that actually gets built */
+  const c = P3CASES.find(z=>z.id===caseId) || P3CASES[4];
+  const ds = basis === 'ds';
+  state.units.flow = 'm3d';
+  Object.assign(state.feed, { Q:2631.6, C:c.C, T:c.T, preLoss:5.0, freshC:0.5 });
+  Object.assign(state.econ, { erd:true, erdEff:96, energy:0.08, hours:8000 });
+  Object.assign(state.targets, { on:true, recovery:80, prodTDS:500, sec:2.2 });
+
+  const ro1 = mkStage('SWRO','1st RO'); ro1.feed=[{src:'FEED',port:'conc',frac:100}];
+  ro1.recovery=c.r1; ro1.R=c.R1; ro1.cp=1.0; ro1.ndp=5; ro1.dP=2; ro1.pMax=83;
+  const ro2 = mkStage('SWRO','2nd RO');
+  ro2.feed=[{src:'PREV',port:'conc',frac: ds ? 8.887 : 100}];
+  ro2.recovery=c.r2; ro2.R=c.R2; ro2.cp=1.0; ro2.ndp=5; ro2.dP=2; ro2.pMax=83;
+  const nf  = mkStage('NF','NF');
+  nf.recovery=c.rn; nf.R=c.Rn; nf.cp=1.0; nf.ndp=3; nf.dP=2; nf.pMax=41;
+  const uh  = mkStage('HPRO','UHPRO');
+  uh.recovery=c.ru; uh.R=c.Ru; uh.cp=1.0; uh.ndp=5; uh.dP=3; uh.pMax=120;
+  uh.feed=[{src:nf.id,port:'perm',frac:100}];
+  const oa  = mkStage('OARO','OARO');
+  oa.recovery=c.ro; oa.R=c.Ro; oa.cp=1.0; oa.ndp=5; oa.dP=3; oa.pMax=110; oa.pSweep=2;
+  oa.feed=[{src:uh.id,port:'conc',frac:100}];
+  oa.blend={src:nf.id,port:'conc',frac:100};      /* NF concentrate after Ca/Mg recovery */
+  oa.sweep={src:'EXT',port:'perm',frac:100}; oa.sweepMode='flow'; oa.sweepQ=0; oa.sweepC=0;
+  uh.blend={src:oa.id,port:'dil',frac:100};       /* OARO diluate returns to the UHPRO feed */
+  state.stages=[ro1,ro2,nf,uh,oa];
+  state.deckRef = { case:c.id, basis, pd:c.pd,
+                    prodQ: ds?c.ds[0]:c.prod[0], prodC: ds?c.ds[1]:c.prod[1] };
+}
+
 function loadPreset(which){
   uid = 1;
   Object.assign(state.feed, { Q:100, C:35, T:20, preLoss:3, freshC:0.5 });
@@ -1000,6 +1079,9 @@ function loadPreset(which){
     const d = mkStage('OARO','OARO #2');        d.recovery=12; d.sweepC=105; d.sweepMode='flow'; d.sweepQ=35;
     b.blend = {src:c.id, port:'dil', frac:100};
     state.stages=[a,b,c,d];
+  } else if (/^p3-/.test(which)){
+    const m = which.split('-');            /* p3-<case>-<basis> */
+    buildP3(m[1], m[2]);
   } else if (which === 'promise3d'){
     /* PROMISE option 3 as drawn on slide 13: RO1 stays full scale, and only
        1/11.25 of its brine is sent on, so the concentrate train runs at the
@@ -1916,8 +1998,12 @@ function renderDiagram(R){
 
   const n = state.stages.length;
   const hasOARO = state.stages.some(s=>s.type==='OARO');
-  const BW=172, GAP=96, X0=260, YC=214, BH=104;
-  const W = X0 + n*(BW+GAP) + 160, H = hasOARO ? 452 : 320;
+  const BW=172, GAP=104, X0=312, YC=214, BH=104;
+  const PREX=112, PREW=104, PRER=PREX+PREW;      // pretreatment block
+  const nRouted = state.stages.reduce((a,z,i)=>a + (z.blend?1:0), 0) + 2;
+  const LANE0 = YC + BH/2 + 46, LANEG = 30;      // lanes for routed streams
+  const W = X0 + n*(BW+GAP) + 170,
+        H = Math.max(hasOARO ? 452 : 320, LANE0 + nRouted*LANEG + 54);
   svg.setAttribute('width',W); svg.setAttribute('height',H); svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
 
   const arrow = (id,c)=>`<marker id="${id}" markerWidth="9" markerHeight="9" refX="7.4" refY="3.2"
@@ -1975,10 +2061,15 @@ function renderDiagram(R){
   txt(54,YC-5,t('dFeed'),{weight:700,size:12,fill:INK,ls:1.2});
   txt(54,YC+13, f(state.feed.Q,0)+' '+FU(),{size:9.5,mono:true,fill:MUT});
   txt(54,YC-44, f(state.feed.C,1)+' g/L · '+f(state.feed.T,0)+' °C',{size:9.5,mono:true,fill:MUT});
-  pipe(L(92,YC,108,YC),TEAL,'gT',state.feed.Q);
-  box(108,YC-30,58,62,PANEL,LINE,10);
-  txt(137,YC-5,t('dPre1'),{size:9.5,weight:600,fill:INK2}); txt(137,YC+7,t('dPre2'),{size:9.5,weight:600,fill:INK2});
-  txt(137,YC+23,'−'+f(state.feed.preLoss,0)+'%',{size:9,mono:true,fill:MUT});
+  pipe(L(92,YC,PREX-2,YC),TEAL,'gT',state.feed.Q);
+  box(PREX,YC-38,PREW,78,PANEL,LINE,10);
+  const pcx = PREX+PREW/2;
+  txt(pcx,YC-22,t('dPreTitle'),{size:8.6,weight:700,fill:INK2,ls:1.1,mono:true});
+  txt(pcx,YC-7, t('dPreTech1'),{size:9.2,weight:600,fill:INK});
+  txt(pcx,YC+6, t('dPreTech2'),{size:9.2,weight:600,fill:INK});
+  txt(pcx,YC+20,'1 + 3 bar',{size:8.8,mono:true,fill:MUT});
+  txt(pcx,YC+32,'−'+f(state.feed.preLoss,1)+' %  ·  '+f(state.feed.Q*(1-state.feed.preLoss/100),0)+' '+FU(),
+      {size:8.8,mono:true,fill:MUT});
 
   const PY=66, SY=372;
   /* permeate bus */
@@ -2028,21 +2119,27 @@ function renderDiagram(R){
                 port:o.port, Q:o.Q, C:o.C, kind:'out'});
   });
 
-  const lbl = (x,y,q,c,col)=>{
-    txt(x, y, f(q,1)+' '+FU(), {size:9,mono:true,fill:col});
-    txt(x, y+12, f(c,2)+' g/L', {size:9,mono:true,fill:MUT});
+  /* flow above the pipe, salinity below it, so the line never crosses a label */
+  const lbl = (x,_y,q,c,col)=>{
+    txt(x, YC-13, f(q,1)+' '+FU(), {size:9,mono:true,fill:col});
+    txt(x, YC+20, f(c,2)+' g/L', {size:9,mono:true,fill:MUT});
   };
+  /* Routed streams travel on their own horizontal lane under the boxes, so no two
+     of them and no label ever share the same ground. Every elbow ends by pointing
+     INTO the block it joins - a merge arrives at the feed, a draw-off leaves it. */
+  let lane = 0;
+  const elbow = (x1,y1,x2,y2,laneY)=>
+    `M${x1},${y1} L${x1},${laneY} L${x2},${laneY} L${x2},${y2}`;
 
   links.forEach(k=>{
     if (!(k.Q > 1e-9)) return;
     const col = PCOL[k.port] || TEAL;
     const gid = col===BLUE?'gB':col===AMB?'gA':'gT';
 
-    /* --- into the train from outside --- */
     if (k.from === 'FEED'){
       const x = sx0(k.to);
-      pipe(L(166,YC,x-4,YC),TEAL,'gT',k.Q);
-      lbl((166+x)/2, YC-10, k.Q, k.C, INK2);
+      pipe(L(PRER+2,YC,x-4,YC),TEAL,'gT',k.Q);
+      lbl((PRER+x)/2, YC-10, k.Q, k.C, INK2);
       return;
     }
     if (k.from === 'EXT'){
@@ -2054,7 +2151,6 @@ function renderDiagram(R){
     }
     const a = sx0(k.from);
 
-    /* --- out of the train --- */
     if (k.to === 'PRODUCT'){
       const x = a + BW/2;
       pipe(L(x,YC-BH/2-3,x,PY+5),BLUE,'gB',k.Q);
@@ -2070,32 +2166,32 @@ function renderDiagram(R){
       return;
     }
     if (k.to === 'BRINE'){
-      if (k.from === n-1){                      /* last stage: straight to the box */
-        pipe(L(a+BW+2,YC,W-130,YC),TEAL,'gT',k.Q);
-        lbl((a+BW+W-130)/2, YC-10, k.Q, k.C, INK2);
-      } else {                                   /* an earlier stage discharging */
-        const x = a + BW - 18;
-        pipe(CV(x,YC+BH/2+4,W-130,YC+18,120),TEAL,'gT',k.Q,true);
-        txt(x+16, YC+BH/2+34, '→ '+f(k.Q,1)+' '+FU()+' @ '+f(k.C,1)+' g/L',
-            {anchor:'start',size:9,mono:true,fill:MUT});
+      if (k.from === n-1){
+        pipe(L(a+BW+2,YC,W-134,YC),TEAL,'gT',k.Q);
+        lbl((a+BW+W-134)/2, YC-10, k.Q, k.C, INK2);
+      } else {
+        const laneY = LANE0 + (lane++)*LANEG, x1 = a + BW - 22;
+        pipe(elbow(x1,YC+BH/2+4,W-80,laneY,laneY),TEAL,'gT',k.Q);
+        txt(x1+10, laneY-6, '\u2192 '+PORTS[k.port]+'  '+f(k.Q,1)+' '+FU()+' @ '+f(k.C,1)+' g/L',
+            {anchor:'start',size:9,mono:true,fill:TEAL});
       }
       return;
     }
 
-    /* --- stage to stage --- */
     const b = sx0(k.to);
-    if (k.to === k.from + 1){                    /* neighbours: straight centreline */
+    if (k.to === k.from + 1 && k.kind === 'feed'){
       pipe(L(a+BW+2,YC,b-4,YC),col,gid,k.Q);
       lbl((a+BW+b)/2, YC-10, k.Q, k.C, INK2);
-      if (k.port !== 'conc') txt((a+BW+b)/2, YC+28, PORTS[k.port],{size:8.4,mono:true,fill:MUT});
-    } else {                                     /* a skip or a recycle: route below */
-      const back = k.to < k.from;
-      const x1 = a + BW/2, x2 = b + BW/2;
-      const dip = back ? 150 : 124;
-      pipe(CV(x1,YC+BH/2+4,x2,YC+BH/2+4,dip),col,gid,k.Q,true);
-      txt((x1+x2)/2, YC+BH/2+dip+4,
-          (back?'↺ ':'→ ')+PORTS[k.port]+'  '+f(k.Q,1)+' '+FU()+' @ '+f(k.C,1)+' g/L',
-          {size:9,mono:true,fill:col});
+      if (k.port !== 'conc') txt((a+BW+b)/2, YC+32, PORTS[k.port],{size:8.4,mono:true,fill:MUT});
+    } else {
+      /* a blend or a skip: drop to a free lane, run flat, then rise into the target */
+      const laneY = LANE0 + (lane++)*LANEG;
+      const back  = k.to < k.from;
+      const x1 = a + BW/2, x2 = b + (back ? BW*0.30 : BW*0.70);
+      pipe(elbow(x1,YC+BH/2+4,x2,YC+BH/2+6,laneY),col,gid,k.Q);
+      txt(Math.min(x1,x2)+8, laneY-6,
+          (back?'\u21ba ':'\u2192 ')+PORTS[k.port]+'  '+f(k.Q,1)+' '+FU()+' @ '+f(k.C,1)+' g/L',
+          {anchor:'start',size:9,mono:true,fill:col});
     }
   });
 
