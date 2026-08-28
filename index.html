@@ -1990,6 +1990,115 @@ function renderDiagram(R){
   txt(W-71,PY+9, f(R.prod.Q,1)+' '+FU(),{size:9.6,mono:true,fill:INK});
   txt(W-71,PY+22, showC(R.prod.C),{size:9.6,mono:true,fill:MUT});
 
+  /* ---- connections, built from the routing the solver actually used ----
+     Every arrow below is one real stream: it starts where the water leaves and
+     ends where it arrives, coloured by what it carries (permeate blue,
+     concentrate teal, sweep and diluate amber). Links are drawn before the
+     boxes so the boxes sit on top of them. */
+  const sx0 = i => X0 + i*(BW+GAP);                 // left edge of stage i
+  const PCOL = { perm:BLUE, conc:TEAL, dil:AMB, feed:TEAL, sweep:AMB };
+  const links = [];
+  const stIdx = id => state.stages.findIndex(z=>z.id===id);
+
+  state.stages.forEach((s,j)=>{
+    const take = (ref, kind) => {
+      if (!ref) return;
+      if (ref.src === 'FEED' || (ref.src === 'PREV' && j === 0)){
+        const q = R.feedStream.Q*(ref.frac===undefined?100:ref.frac)/100;
+        links.push({from:'FEED', to:j, port:'feed', Q:q, C:R.feedStream.C, kind}); return;
+      }
+      if (ref.src === 'EXT' || ref.src === 'FRESH'){
+        const r = R.res[j];
+        links.push({from:'EXT', to:j, port:'sweep', Q:r&&r.sw?r.sw.Q:0, C:r&&r.sw?r.sw.C:0, kind}); return;
+      }
+      const si = ref.src === 'PREV' ? j-1 : stIdx(ref.src);
+      if (si < 0) return;
+      const port = ref.src === 'PREV' ? 'conc' : ref.port;
+      const st = R.store[state.stages[si].id+':'+port] || {Q:0,C:0};
+      links.push({from:si, to:j, port, Q:st.Q*(ref.frac===undefined?100:ref.frac)/100, C:st.C, kind});
+    };
+    take(s.feed[0], 'feed');
+    if (s.blend) take(s.blend, 'blend');
+    if (s.type === 'OARO') take(s.sweep, 'sweep');
+  });
+  /* whatever leaves the train */
+  R.outlets.forEach(o=>{
+    const si = stIdx(o.stage.id);
+    links.push({from:si, to:(o.port==='perm'?'PRODUCT':o.port==='conc'?'BRINE':'UNROUTED'),
+                port:o.port, Q:o.Q, C:o.C, kind:'out'});
+  });
+
+  const lbl = (x,y,q,c,col)=>{
+    txt(x, y, f(q,1)+' '+FU(), {size:9,mono:true,fill:col});
+    txt(x, y+12, f(c,2)+' g/L', {size:9,mono:true,fill:MUT});
+  };
+
+  links.forEach(k=>{
+    if (!(k.Q > 1e-9)) return;
+    const col = PCOL[k.port] || TEAL;
+    const gid = col===BLUE?'gB':col===AMB?'gA':'gT';
+
+    /* --- into the train from outside --- */
+    if (k.from === 'FEED'){
+      const x = sx0(k.to);
+      pipe(L(166,YC,x-4,YC),TEAL,'gT',k.Q);
+      lbl((166+x)/2, YC-10, k.Q, k.C, INK2);
+      return;
+    }
+    if (k.from === 'EXT'){
+      const x = sx0(k.to)+34;
+      pipe(L(x,SY,x,YC+BH/2+4),AMB,'gA',k.Q);
+      txt(x, SY+16, t('dSweep')+' '+f(k.Q,1)+' '+FU(), {size:9,mono:true,fill:AMB});
+      txt(x, SY+28, f(k.C,2)+' g/L', {size:9,mono:true,fill:MUT});
+      return;
+    }
+    const a = sx0(k.from);
+
+    /* --- out of the train --- */
+    if (k.to === 'PRODUCT'){
+      const x = a + BW/2;
+      pipe(L(x,YC-BH/2-3,x,PY+5),BLUE,'gB',k.Q);
+      txt(x+7,(YC-BH/2+PY)/2-5, f(k.Q,1)+' '+FU(),{anchor:'start',size:9,mono:true,fill:BLUE});
+      txt(x+7,(YC-BH/2+PY)/2+8, showC(k.C),{anchor:'start',size:9,mono:true,fill:MUT});
+      return;
+    }
+    if (k.to === 'UNROUTED'){
+      const x = a + BW - 34;
+      pipe(L(x,YC+BH/2+4,x,SY),AMB,'gA',k.Q);
+      txt(x, SY+16, t('dDil')+' '+f(k.Q,1)+' '+FU(),{size:9,mono:true,fill:AMB});
+      txt(x, SY+28, f(k.C,2)+' g/L',{size:9,mono:true,fill:MUT});
+      return;
+    }
+    if (k.to === 'BRINE'){
+      if (k.from === n-1){                      /* last stage: straight to the box */
+        pipe(L(a+BW+2,YC,W-130,YC),TEAL,'gT',k.Q);
+        lbl((a+BW+W-130)/2, YC-10, k.Q, k.C, INK2);
+      } else {                                   /* an earlier stage discharging */
+        const x = a + BW - 18;
+        pipe(CV(x,YC+BH/2+4,W-130,YC+18,120),TEAL,'gT',k.Q,true);
+        txt(x+16, YC+BH/2+34, '→ '+f(k.Q,1)+' '+FU()+' @ '+f(k.C,1)+' g/L',
+            {anchor:'start',size:9,mono:true,fill:MUT});
+      }
+      return;
+    }
+
+    /* --- stage to stage --- */
+    const b = sx0(k.to);
+    if (k.to === k.from + 1){                    /* neighbours: straight centreline */
+      pipe(L(a+BW+2,YC,b-4,YC),col,gid,k.Q);
+      lbl((a+BW+b)/2, YC-10, k.Q, k.C, INK2);
+      if (k.port !== 'conc') txt((a+BW+b)/2, YC+28, PORTS[k.port],{size:8.4,mono:true,fill:MUT});
+    } else {                                     /* a skip or a recycle: route below */
+      const back = k.to < k.from;
+      const x1 = a + BW/2, x2 = b + BW/2;
+      const dip = back ? 150 : 124;
+      pipe(CV(x1,YC+BH/2+4,x2,YC+BH/2+4,dip),col,gid,k.Q,true);
+      txt((x1+x2)/2, YC+BH/2+dip+4,
+          (back?'↺ ':'→ ')+PORTS[k.port]+'  '+f(k.Q,1)+' '+FU()+' @ '+f(k.C,1)+' g/L',
+          {size:9,mono:true,fill:col});
+    }
+  });
+
   /* ---- stages ---- */
   state.stages.forEach((s,i)=>{
     const r = R.res[i]; if(!r) return;
@@ -2026,50 +2135,15 @@ function renderDiagram(R){
     txt(gx+gw,gy-5, f(ratio*100,0)+'% '+t('dOf')+' '+f(s.pMax,0),
         {anchor:'end',size:8.4,mono:true,fill:ratio>1?gcol:MUT,weight:ratio>1?700:400});
 
-    /* inlet */
-    const prevX = i===0 ? 166 : X0+(i-1)*(BW+GAP)+BW;
-    const ref = s.feed[0];
-    /* adjacent stages are drawn as a straight moving pipe whatever port they use;
-       only a genuinely non-adjacent route gets the curved dashed path */
-    const prevSt = i>0 ? state.stages[i-1] : null;
-    const chain = (ref.src==='PREV') || (prevSt && ref.src===prevSt.id) || (i===0 && ref.src==='FEED');
-    const viaPort = chain && prevSt && ref.src===prevSt.id && ref.port!=='conc' ? PORTS[ref.port] : '';
-    if (chain){
-      pipe(L(prevX+2,YC,x-4,YC),TEAL,'gT',r.fd.Q);
-      txt((prevX+x)/2, YC-10, f(r.fd.Q,1)+' '+FU(),{size:9,mono:true,fill:INK2});
-      txt((prevX+x)/2, YC+16, f(r.fd.C,1)+' g/L',{size:9,mono:true,fill:MUT});
-      if (viaPort) txt((prevX+x)/2, YC+28, viaPort,{size:8.4,mono:true,fill:MUT});
-    } else {
-      const si = state.stages.findIndex(z=>z.id===ref.src);
-      const sx = ref.src==='FEED' ? 166 : (si>=0 ? X0+si*(BW+GAP)+BW/2 : x-40);
-      pipe(CV(sx,YC+BH/2,x-4,YC,124),GREY,'gT',r.fd.Q,true);
-      txt((sx+x)/2, YC+BH/2+96, '↩ '+f(r.fd.Q,1)+' '+FU()+' @ '+f(r.fd.C,1)+' g/L',{size:9,mono:true,fill:MUT});
-    }
-    /* permeate riser */
-    if (r.perm.Q>1e-9 && s.type!=='OARO'){
-      pipe(L(x+BW/2,top-3,x+BW/2,PY+5),BLUE,'gB',r.perm.Q);
-      txt(x+BW/2+7,(top+PY)/2-5, f(r.perm.Q,1)+' '+FU(),{anchor:'start',size:9,mono:true,fill:BLUE});
-      txt(x+BW/2+7,(top+PY)/2+8, showC(r.perm.C),{anchor:'start',size:9,mono:true,fill:MUT});
-    }
-    /* OARO sweep + diluate */
-    if (s.type==='OARO'){
-      pipe(L(x+34,SY,x+34,YC+BH/2+4),AMB,'gA',r.sw?r.sw.Q:0);
-      txt(x+34,SY+16,t('dSweep')+' '+f(r.sw?r.sw.Q:0,1)+' '+FU(),{size:9,mono:true,fill:AMB});
-      txt(x+34,SY+28, f(r.sw?r.sw.C:0,2)+' g/L',{size:9,mono:true,fill:MUT});
-      pipe(L(x+BW-34,YC+BH/2+4,x+BW-34,SY),AMB,'gA',r.dil.Q);
-      txt(x+BW-34,SY+16,t('dDil')+' '+f(r.dil.Q,1)+' '+FU(),{size:9,mono:true,fill:AMB});
-      txt(x+BW-34,SY+28, f(r.dil.C,2)+' g/L',{size:9,mono:true,fill:MUT});
-    }
   });
 
-  /* ---- final brine ---- */
-  const lastX = n ? X0+(n-1)*(BW+GAP)+BW : 166;
-  pipe(L(lastX+2,YC,W-130,YC),TEAL,'gT',R.brine.Q);
+  /* ---- terminal boxes ---- */
   box(W-126,YC-32,110,64,FIELD,AMB,10,{filter:'url(#softglow)'});
   txt(W-71,YC-11,t('dBrine'),{weight:700,size:11,fill:AMB,ls:1.1});
   txt(W-71,YC+5, f(R.brine.Q,1)+' '+FU(),{size:9.6,mono:true,fill:INK});
   txt(W-71,YC+19, f(R.brine.C,1)+' g/L',{size:9.6,mono:true,fill:MUT});
   if (state.econ.erd) txt(W-71,YC+46,'⟳ ERD '+f(state.econ.erdEff,0)+' %',{size:9,mono:true,fill:MUT});
+
 }
 
 /* -------------------- stream table -------------------- */
