@@ -55,7 +55,7 @@
   --ink:#dceaf3; --ink2:#a9c6d6; --muted:#7797ac;
   --accent:#37c8cf; --accent2:#4d84ff; --brand:#3059c7;
   --ok:#2bc48a; --warn:#e5a54c; --bad:#ff6058;
-  --swro:#2f9fe6; --hpro:#9b7bff; --oaro:#f0a23c;
+  --swro:#2f9fe6; --hpro:#9b7bff; --oaro:#f0a23c; --nf:#43c9a0;
   --panel:rgba(12,24,37,.82); --head:linear-gradient(180deg,#132639,#0e1c2b);
   --field:#0b1a28; --glow:rgba(55,200,207,.30); --shadow:0 2px 24px rgba(0,0,0,.45);
   --cols:minmax(340px,0.9fr) 8px minmax(0,1.6fr);
@@ -66,7 +66,7 @@
   --ink:#0d2430; --ink2:#28495c; --muted:#5a7684;
   --accent:#0f8f96; --accent2:#2f6fe0; --brand:#3059c7;
   --ok:#1a8f5f; --warn:#c9761a; --bad:#c0392b;
-  --swro:#1177b5; --hpro:#6a4fb6; --oaro:#d98514;
+  --swro:#1177b5; --hpro:#6a4fb6; --oaro:#d98514; --nf:#0d8a6b;
   --panel:rgba(255,255,255,.95); --head:linear-gradient(180deg,#fbfdfe,#eef7f9);
   --field:#ffffff; --glow:rgba(15,143,150,.22); --shadow:0 1px 2px rgba(6,40,55,.06),0 6px 18px rgba(6,40,55,.09);
 }
@@ -262,6 +262,13 @@ select.tb option{color:#0d2430;background:#fff}
 .autobar{display:flex;align-items:center;gap:8px;margin-top:11px;padding:9px 10px;border-radius:9px;
   background:linear-gradient(100deg,var(--bg3),var(--bg1));border:1px solid var(--line2);flex-wrap:wrap}
 .autobar b{font-size:11.5px;color:var(--accent)}
+.swatch{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);
+  font-weight:700;letter-spacing:.4px;cursor:pointer}
+.swatch input[type=color]{width:22px;height:18px;padding:0;border:1px solid var(--line);
+  border-radius:5px;background:none;cursor:pointer}
+.tb[disabled]{opacity:.35;cursor:default}
+.tb[disabled]:hover{background:rgba(255,255,255,.08);border-color:rgba(150,220,235,.25);
+  box-shadow:none;transform:none}
 .autobar span{font-size:11.5px;color:var(--muted)}
 .autobar input{width:62px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--field);color:var(--ink)}
 .run{background:linear-gradient(140deg,var(--accent),#1a93a8);color:#04222a;border:none;border-radius:8px;
@@ -470,6 +477,8 @@ footer{padding:14px 20px 30px;color:var(--muted);font-size:11.5px;text-align:cen
   <div class="toolbar">
     <select id="preset" class="tb" data-i18n-t="ttPreset"></select>
     <button class="tb" id="btnPresets" data-i18n-t="ttPresets">★ Presets</button>
+    <button class="tb" id="btnUndo" data-i18n-t="ttUndo" disabled>↶</button>
+    <button class="tb" id="btnRedo" data-i18n-t="ttRedo" disabled>↷</button>
     <button class="tb" id="btnLang" data-i18n-t="ttLang">🇰🇷 한국어</button>
     <button class="tb" id="btnTheme" data-i18n-t="ttTheme">☀ Light</button>
     <button class="tb on" id="btnMotion" data-i18n-t="ttMotion">◉ Motion</button>
@@ -576,6 +585,8 @@ const L = {
 en:{
   /* ---- shell ---- */
   tagline:'SWRO · HPRO · OARO train simulator',
+  cTitle:'🎨 Stage colours', cReset:'Back to the theme colours',
+  ttUndo:'Undo  (Ctrl+Z)', ttRedo:'Redo  (Ctrl+Shift+Z)',
   btnPresets:'★ Presets', ttPresets:'Save the current setup as your own preset, or rename and hide the built-in ones',
   ttPreset:'Load a preset',
   gMine:'My presets', gExamples:'Examples',
@@ -685,7 +696,7 @@ en:{
   /* ---- diagram ---- */
   dFeed:'FEED', dPre1:'PRE-', dPre2:'TREAT',
   dPreTitle:'PRETREATMENT', dPreTech1:'Auto Strainer', dPreTech2:'→ UF (or DMF)', dBus:'PERMEATE  BUS', dProduct:'PRODUCT', dBrine:'BRINE / C',
-  dStage:'STAGE', dSweep:'sweep', dDil:'diluate', dCout:'C_out', dOf:'of',
+  dStage:'STAGE', dNa:'model n/a', dSweep:'sweep', dDil:'diluate', dCout:'C_out', dOf:'of',
   lgFeed:'Feed / concentrate', lgPerm:'Permeate (product)', lgSweep:'OARO sweep / diluate', lgRoute:'Routed / recycled stream',
   /* ---- stream table ---- */
   thStage:'Stage', thStream:'Stream', thQ:'Q', thTds:'TDS', thSalt:'Salt', thP:'P', thNote:'Note',
@@ -728,6 +739,7 @@ en:{
   st7:'Feed pressure the stage needs',
   st7note:(oaro)=>`The hardest point in the element is the <b>concentrate end</b>: the salt is at its most concentrated there, so pressure that is enough at that point is enough everywhere. ${oaro?'Counter-current flow puts the fresh sweep inlet against that end.':''}`,
   st7lab:'NDP is the net driving pressure left over to push water through',
+  st7nf:(P)=>`This model treats the solution as a NaCl equivalent, but NF rejects divalent ions while passing most monovalents, so its real osmotic difference is far smaller than the ${P} bar computed here. The NF mass balance is sound; take its pressure from a membrane projection instead.`,
   st7ok:(P,pm,pc,ty)=>`${P} bar against a ${pm} bar limit for ${ty} — ${pc} % of the rating.`,
   st7bad:(P,pm,d,ty)=>`${P} bar exceeds the ${pm} bar limit for ${ty} by ${d} bar.`,
   st8:'Pumping power',
@@ -743,6 +755,8 @@ en:{
 },
 ko:{
   tagline:'SWRO · HPRO · OARO 공정 시뮬레이터',
+  cTitle:'🎨 공정별 색상', cReset:'테마 기본색으로 되돌리기',
+  ttUndo:'실행 취소  (Ctrl+Z)', ttRedo:'다시 실행  (Ctrl+Shift+Z)',
   btnPresets:'★ 프리셋', ttPresets:'현재 설정을 나만의 프리셋으로 저장하거나, 기본 프리셋의 이름을 바꾸고 숨깁니다',
   ttPreset:'프리셋 불러오기',
   gMine:'내 프리셋', gExamples:'예시',
@@ -844,7 +858,7 @@ ko:{
   tInit:'초기화 중…',
   dFeed:'유입수', dPre1:'전처리', dPre2:'',
   dPreTitle:'전처리', dPreTech1:'Auto Strainer', dPreTech2:'→ UF (또는 DMF)', dBus:'투과수  라인', dProduct:'생산수', dBrine:'농축수 / C',
-  dStage:'스테이지', dSweep:'스윕', dDil:'희석수', dCout:'유출 C', dOf:'/',
+  dStage:'스테이지', dNa:'모델 미적용', dSweep:'스윕', dDil:'희석수', dCout:'유출 C', dOf:'/',
   lgFeed:'유입수 / 농축수', lgPerm:'투과수 (생산수)', lgSweep:'OARO 스윕 / 희석수', lgRoute:'연결 / 재순환 스트림',
   thStage:'스테이지', thStream:'스트림', thQ:'유량', thTds:'TDS', thSalt:'염', thP:'압력', thNote:'비고',
   rFeed:'유입수', rRaw:'원수 해수', rPre:'전처리', rTo1:'1단 공급', rInlet:'시스템 유입',
@@ -885,7 +899,8 @@ ko:{
   st7:'이 스테이지에 필요한 공급 압력',
   st7note:(oaro)=>`엘리먼트에서 가장 불리한 지점은 <b>농축수 출구</b> 입니다. 그 지점의 농도가 가장 높으므로, 여기서 압력이 충분하면 전 구간에서 충분합니다. ${oaro?'향류 흐름이므로 이 지점에는 스윕 입구(저염) 가 마주합니다.':''}`,
   st7lab:'NDP 는 실제로 물을 밀어내는 데 남는 순 구동 압력입니다',
-  st7ok:(P,pm,pc,ty)=>`${P} bar 로 ${ty} 한계 ${pm} bar 대비 ${pc} % 수준입니다.`,
+  st7nf:(P)=>`이 모델은 용액을 NaCl 등가로 다루지만, NF 는 2가 이온을 제거하고 1가 이온은 대부분 통과시키므로 실제 삼투압 차이는 여기서 계산된 ${P} bar 보다 훨씬 작습니다. NF 의 물질수지는 유효하며, 압력은 막 프로젝션 결과를 사용하세요.`,
+  st7ok:(P,pm,pc,ty)=>`${P} bar 으로 한계 ${pm} bar 대비 ${pc} % 수준입니다.`,
   st7bad:(P,pm,d,ty)=>`${P} bar 로 ${ty} 한계 ${pm} bar 를 ${d} bar 초과합니다.`,
   st8:'펌프 동력',
   st8lab1:'유량 1단위를 1 bar 승압 — 1 m³/h·bar = 1/36 kW, 1 m³/d·bar = 1/864 kW',
@@ -980,6 +995,28 @@ const DEF = {
 };
 /* stage colours live in CSS so they follow the active theme */
 const TYPECOLOR = new Proxy({}, { get:(_,k)=>CSSV('--'+String(k).toLowerCase()) });
+
+/* Per-technology colours. A chosen colour is written straight onto the root as an
+   inline custom property, so it wins over whichever theme is active and TYPECOLOR
+   picks it up unchanged. */
+const CKEY = 'brineflow.colors';
+let TCOL = {};
+try { TCOL = JSON.parse(localStorage.getItem(CKEY) || '{}'); } catch(e){}
+function applyColors(){
+  ['SWRO','HPRO','OARO','NF'].forEach(k=>{
+    const v = TCOL[k];
+    if (v) document.documentElement.style.setProperty('--'+k.toLowerCase(), v);
+    else   document.documentElement.style.removeProperty('--'+k.toLowerCase());
+  });
+}
+function setColor(k, v){
+  TCOL[k] = v; try { localStorage.setItem(CKEY, JSON.stringify(TCOL)); } catch(e){}
+  applyColors(); refresh(true);
+}
+function resetColors(){
+  TCOL = {}; try { localStorage.removeItem(CKEY); } catch(e){}
+  applyColors(); refresh(true);
+}
 const PORTS = new Proxy({}, { get:(_,k)=>t('port'+String(k)[0].toUpperCase()+String(k).slice(1)) });
 let uid = 1;
 const nid = () => 'S' + (uid++);
@@ -1209,7 +1246,11 @@ function computeStage(s, fd, sw, T, trace){
   const dPiMax  = beta*piC - lowSide;
   const backP   = s.type === 'OARO' ? s.pSweep : 0;
   const Preq    = dPiMax + s.ndp + s.dP + backP;
-  const ok      = Preq <= s.pMax;
+  /* NF rejects divalents and passes monovalents, so a NaCl-equivalent osmotic
+     pressure badly overstates its driving requirement. Report the number but do
+     not fail the stage on it. */
+  const pna     = s.type === 'NF';
+  const ok      = pna || Preq <= s.pMax;
 
   const eff   = Math.max(0.01, Math.min(1, s.pumpEff/100)); // power
   const dPnet = Math.max(0, Preq - fd.P);
@@ -1331,7 +1372,8 @@ function computeStage(s, fd, sw, T, trace){
     {src: s.type==='OARO' ? `${f(dPiMax,2)} + ${f(s.ndp,2)} + ${f(s.dP,2)} + ${f(backP,2)}`
                           : `${f(dPiMax,2)} + ${f(s.ndp,2)} + ${f(s.dP,2)}`},
     {src:f(Preq,2), unit:'bar', res:true}],t('st7lab'));
-  flag(s7, ok ? 'ok':'bad', ok
+  if (pna) flag(s7,'warn', t('st7nf')(f(Preq,1)));
+  else flag(s7, ok ? 'ok':'bad', ok
       ? t('st7ok')(f(Preq,1), f(s.pMax,0), f(Preq/s.pMax*100,0), s.type)
       : t('st7bad')(f(Preq,1), f(s.pMax,0), f(Preq-s.pMax,1), s.type));
 
@@ -1854,6 +1896,13 @@ function renderStages(){
     add.appendChild(b);
   });
 
+  const colr = el('div','autobar');
+  colr.innerHTML = `<b>${t('cTitle')}</b>` +
+    ['SWRO','HPRO','OARO','NF'].map(k=>
+      `<label class="swatch"><input type="color" data-tech="${k}" value="${CSSV('--'+k.toLowerCase())||'#888888'}">${k}</label>`
+    ).join('') +
+    `<button class="ic" id="colReset" style="width:auto;padding:0 9px" title="${t('cReset')}">↺</button>`;
+
   const auto = el('div','autobar',
     `<b>${t('autoT1')}</b><span>${t('autoT2')}</span>
      <input type="number" id="tuneTarget" value="95" min="40" max="100" step="1">
@@ -1861,7 +1910,11 @@ function renderStages(){
      <button class="run" id="btnTune"><span class="spin"></span>${t('autoRun')}</button>`);
 
   PBODY.train.innerHTML='';
-  PBODY.train.append(host, add, auto);
+  PBODY.train.append(host, add, colr, auto);
+  colr.querySelectorAll('input[type=color]').forEach(inp=>{
+    inp.oninput = ()=>setColor(inp.dataset.tech, inp.value);
+  });
+  colr.querySelector('#colReset').onclick = resetColors;
   $('#btnTune').onclick = ()=>autoTune(parseFloat($('#tuneTarget').value)||95);
 }
 function move(i,d){ const j=i+d; if(j<0||j>=state.stages.length) return;
@@ -2232,12 +2285,13 @@ function renderDiagram(R){
     /* ratio is the honest number for the label and the colour; the bar itself is
        clamped so it cannot overflow its track, but never clamp the text. */
     const ratio = Math.max(0, r.Preq/Math.max(s.pMax,1));
-    const gcol = ratio>1 ? BAD : ratio>0.95 ? WARN : OK;
+    const nfna = s.type === 'NF';               /* pressure model not valid for NF */
+    const gcol = nfna ? MUT : ratio>1 ? BAD : ratio>0.95 ? WARN : OK;
     svg.appendChild(mk('rect',{x:gx,y:gy,width:gw,height:4,rx:2,fill:LINE}));
-    svg.appendChild(mk('rect',{x:gx,y:gy,width:gw*Math.min(ratio,1),height:4,rx:2,fill:gcol}));
+    svg.appendChild(mk('rect',{x:gx,y:gy,width:gw*(nfna?0:Math.min(ratio,1)),height:4,rx:2,fill:gcol}));
     txt(gx,gy-5, f(r.Preq,1)+' bar',{anchor:'start',size:9,mono:true,fill:gcol,weight:700});
-    txt(gx+gw,gy-5, f(ratio*100,0)+'% '+t('dOf')+' '+f(s.pMax,0),
-        {anchor:'end',size:8.4,mono:true,fill:ratio>1?gcol:MUT,weight:ratio>1?700:400});
+    txt(gx+gw,gy-5, nfna ? t('dNa') : f(ratio*100,0)+'% '+t('dOf')+' '+f(s.pMax,0),
+        {anchor:'end',size:8.4,mono:true,fill:nfna?MUT:(ratio>1?gcol:MUT),weight:(!nfna&&ratio>1)?700:400});
 
   });
 
@@ -2467,7 +2521,52 @@ function refresh(structural){
     }
   });
   saveState();
+  histSchedule();
 }
+
+/* ---------- undo / redo over the whole configuration ---------- */
+const UNDOH = { past:[], future:[], lock:false, timer:null, max:120 };
+function histPush(){
+  if (UNDOH.lock) return;
+  const snap = JSON.stringify(snapshotState());
+  if (UNDOH.past.length && UNDOH.past[UNDOH.past.length-1] === snap) return;
+  UNDOH.past.push(snap);
+  if (UNDOH.past.length > UNDOH.max) UNDOH.past.shift();
+  UNDOH.future.length = 0;
+  histButtons();
+}
+function histSchedule(){ clearTimeout(UNDOH.timer); UNDOH.timer = setTimeout(histPush, 350); }
+function histApply(snapStr){
+  UNDOH.lock = true;
+  applySnapshot(JSON.parse(snapStr));
+  refresh(true);
+  UNDOH.lock = false;
+  histButtons();
+}
+function undo(){
+  if (UNDOH.past.length < 2) return;
+  clearTimeout(UNDOH.timer); histPush();          /* capture anything still pending */
+  if (UNDOH.past.length < 2) return;
+  UNDOH.future.push(UNDOH.past.pop());
+  histApply(UNDOH.past[UNDOH.past.length-1]);
+}
+function redo(){
+  if (!UNDOH.future.length) return;
+  const s = UNDOH.future.pop();
+  UNDOH.past.push(s);
+  histApply(s);
+}
+function histButtons(){
+  const u = document.getElementById('btnUndo'), r = document.getElementById('btnRedo');
+  if (u) u.disabled = UNDOH.past.length < 2;
+  if (r) r.disabled = !UNDOH.future.length;
+}
+document.addEventListener('keydown', e=>{
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const k = (e.key || '').toLowerCase();
+  if (k === 'z'){ e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if (k === 'y'){ e.preventDefault(); redo(); }
+});
 
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 async function autoTune(targetPct){
@@ -2585,6 +2684,8 @@ $('#btnReport').onclick = ()=>{
 };
 $('#preset').onchange = e=>{ if(e.target.value){ loadPreset(e.target.value); refresh(true); e.target.value=''; } };
 $('#btnPresets').onclick = presetManager;
+$('#btnUndo').onclick = undo;
+$('#btnRedo').onclick = redo;
 $('#btnLayout').onclick = ()=>{ layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
   document.querySelectorAll('.panel').forEach(p=>{p.classList.remove('collapsed','max');
     p.querySelector('.pbody').style.height=''; });
@@ -2813,6 +2914,7 @@ function presetManager(){
 /* ==========================================================================
    11. BOOT
    ========================================================================== */
+applyColors();
 buildPanels();
 if (!restore()) loadPreset('sketch');
 placePanels();
@@ -2826,6 +2928,7 @@ document.querySelectorAll('[data-i18n-t]').forEach(e=>{ e.title = t(e.dataset.i1
 refresh(true);
 document.getElementById('btnLang').textContent = LANG==='ko' ? '🇬🇧 EN' : '🇰🇷 한국어';
 if (LANG !== 'en') applyLang();
+histPush();                       /* the opening state is the first undo step */
 [...document.querySelectorAll('.panel')].forEach((p,i)=>p.style.animationDelay=(i*55)+'ms');
 </script>
 </body>
