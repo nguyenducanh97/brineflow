@@ -285,6 +285,19 @@ select.tb option{color:#0d2430;background:#fff}
 .kpi .v{font-size:19px;font-weight:680;color:var(--ink);line-height:1.25;margin-top:1px;font-variant-numeric:tabular-nums}
 .kpi .v small{font-size:11px;font-weight:600;color:var(--muted)}
 .kpi .spark{display:block;margin-top:2px;opacity:.85}
+.targets{border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:var(--bg2)}
+.tg-h{padding:7px 11px;font-size:10px;letter-spacing:.9px;text-transform:uppercase;font-weight:700;
+  color:var(--accent);background:var(--head);border-bottom:1px solid var(--line)}
+.tg-row{display:grid;grid-template-columns:1fr auto auto 20px;gap:10px;align-items:baseline;
+  padding:6px 11px;font-size:12.2px;border-bottom:1px solid var(--line)}
+.tg-row:last-child{border-bottom:none}
+.tg-n{color:var(--ink2)}
+.tg-v{font-weight:680;font-variant-numeric:tabular-nums;color:var(--ink)}
+.tg-v small{color:var(--muted);font-weight:600;font-size:10.5px}
+.tg-l{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+.tg-b{font-weight:800;text-align:center}
+.tg-row.pass .tg-b{color:var(--ok)} .tg-row.fail .tg-b{color:var(--bad)}
+.tg-row.fail .tg-v{color:var(--bad)}
 .msgs{display:flex;flex-direction:column;gap:7px}
 .msgs:not(:empty){margin-top:11px}
 .chip{display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
@@ -451,6 +464,7 @@ footer{padding:14px 20px 30px;color:var(--muted);font-size:11.5px;text-align:cen
       <option value="sketch" data-i18n="presetSketch">Sketch example: SWRO→SWRO→HPRO→OARO</option>
       <option value="swro" data-i18n="presetSwro">Conventional 2-stage SWRO</option>
       <option value="zld" data-i18n="presetZld">Brine concentration with OARO ×2</option>
+      <option value="promise3" data-i18n="presetPromise">PROMISE 3안 — RO1·RO2·NF·UHPRO·OARO (33 g/L, 17 °C)</option>
     </select>
     <button class="tb" id="btnLang" data-i18n-t="ttLang">🇰🇷 한국어</button>
     <button class="tb" id="btnTheme" data-i18n-t="ttTheme">☀ Light</button>
@@ -560,6 +574,8 @@ en:{
   tagline:'SWRO · HPRO · OARO train simulator',
   presetPick:'Load preset…', presetSketch:'Sketch example: SWRO→SWRO→HPRO→OARO',
   presetSwro:'Conventional 2-stage SWRO', presetZld:'Brine concentration with OARO ×2',
+  presetPromise:'PROMISE 3안 — RO1·RO2·NF·UHPRO·OARO (33 g/L, 17 °C)',
+
   btnLight:'☀ Light', btnDark:'🌙 Dark', btnMotionOn:'◉ Motion', btnMotionOff:'◌ Motion',
   btnLayout:'⌗ Layout', btnSave:'💾 Save', btnLoad:'📂 Load', btnCsv:'⭳ CSV', btnReport:'📄 Report',
   ttTheme:'Switch between the dark control-room and light daylight theme',
@@ -579,6 +595,7 @@ en:{
   ttGrip:'Drag to move this panel', ttCollapse:'Collapse / expand', ttFocus:'Focus this panel',
   ttResize:'Drag to resize this panel', ttSplit:'Drag to resize the columns',
   /* ---- feed panel ---- */
+  fUnit:'Flow unit', tipUnit:'Whether every flow in the tool is per hour or per day. It changes the labels and the power conversion (1 m³/h·bar = 1/36 kW, 1 m³/d·bar = 1/864 kW) — no stream value is rescaled, so switch it before you enter your flows.',
   fFlow:'Feed flow', fTds:'Feed TDS', fTemp:'Temperature', fPre:'Pretreatment loss', fMakeup:'Make-up water TDS',
   tipFlow:'Raw seawater drawn into the plant, before pretreatment losses. The train scales with it: double the flow and recovery, salinities and specific energy stay put — only absolute flows and power move.',
   tipTds:'Total dissolved solids of the raw seawater. 35 g/L = 35,000 mg/L, typical open ocean; the Arabian Gulf runs 40–45, the Baltic under 10.',
@@ -592,7 +609,7 @@ en:{
   tipTake:'Fraction of that source routed here. Use it to split one stream between two consumers — the tool warns if more than 100 % of a stream is drawn.',
   tipBlend:'A second stream mixed into this stage feed, weighted by salt load. This is how a recycle loop is closed, for example returning OARO diluate to an upstream stage.',
   tipSweepSrc:'Which stream flows along the low-pressure side. In a real cascade this is the diluate of the neighbouring stage; the external option lets you set a salinity directly while sizing the train.',
-  tipSweepMode:'Give the sweep flow as a percentage of this stage feed, or as a fixed m³/h. Use a fixed flow when the sweep sits inside a recycle loop, otherwise the loop can chase its own tail and diverge.',
+  tipSweepMode:'Give the sweep flow as a percentage of this stage feed, or as a fixed flow. Use a fixed flow when the sweep sits inside a recycle loop, otherwise the loop can chase its own tail and diverge.',
   tipSweepQ:'Sweep flow along the low-pressure side. More sweep dilutes less per pass, so the driving force stays high — at the cost of circulation energy.',
   tipTakeSrc:'Fraction of the chosen source used as this stage sweep.',
   tipSweepP:'Back-pressure held on the sweep channel. It adds directly to the feed pressure this stage needs, and sets the sweep circulation pump duty.',
@@ -613,7 +630,7 @@ en:{
   fFrom:'Feed comes from', fTake:'…take', fTakePct:'% of it', fBlend:'+ blend stream', fTakePct2:'%',
   fBlendAdd:'+ add a blended / recycled feed stream', fBlendDel:'✕ remove blend',
   fSweepSrc:'Sweep source', fSweepTds:'Sweep TDS', fSweepMode:'Sweep flow given as',
-  mRatio:'% of stage feed', mFlow:'absolute m³/h', fSweepQ:'Sweep flow', fSweepRatio:'Sweep ratio',
+  mRatio:'% of stage feed', mFlow:'absolute flow', fSweepQ:'Sweep flow', fSweepRatio:'Sweep ratio',
   fSweepRatioU:'% of feed', fTakeSrc:'…take', fTakeSrcU:'% of source', fSweepP:'Sweep-side pressure',
   tipSweepTds:'A saline sweep is what makes OARO work — typically 60–80 % of the stage feed TDS',
   fSpecBy:'Specify by', mRec:'Water recovery', mTarget:'Target concentrate TDS',
@@ -624,6 +641,7 @@ en:{
   tipDp:'Friction loss along the feed spacer from inlet to outlet. A pure loss — the pump pays for it and nothing comes back. Typically 0.3–1 bar per element, so 2–4 bar across a vessel. It rises as the elements foul, which is why plants trend it.',
   tipEff:'Wire-to-water efficiency: the share of electrical power that ends up as hydraulic pressure. 80–85 % for a large high-pressure pump train, 60–72 % for a pilot skid. Affects the energy numbers only — never the mass balance.',
   tipPmax:'Mechanical rating of the element and pressure vessel. Used only as a limit check, never in the calculation. SWRO ≈ 83 bar (1200 psi), HPRO ≈ 120 bar, OARO ≈ 70 bar, BWRO ≈ 41 bar.',
+  subNF:'nanofiltration',
   subSWRO:'seawater RO', subHPRO:'high-pressure RO', subOARO:'osmotically assisted',
   noStages:'No stages yet — add an SWRO, HPRO or OARO block below.',
   ttUp:'Move up', ttDown:'Move down', ttDup:'Duplicate', ttDel:'Delete', ttRename:'Rename',
@@ -641,9 +659,9 @@ en:{
   mOaro:(n,ty)=>`<b>${n}:</b> ${ty} above 85 g/L — an OARO stage is usually the cheaper way past this point.`,
   mIdle:(n,r)=>`<b>${n}</b> recovers only ${r} % — its inlet is already at the pressure limit, so the stage earns almost nothing. Delete it, or make it an OARO stage with a saline sweep.`,
   mDraw:(pct,port,n)=>`<b>Routing error:</b> ${pct} % of the ${port} of “${n}” is drawn — more than exists.`,
-  mExt:(Q,C)=>`<b>${Q} m³/h of external sweep water at ${C} g/L</b> enters the OARO sweep side. It is counted as a system inlet; recovery is still referred to the raw seawater. A closed design uses an internal recycle instead.`,
-  mUnrouted:(Q,C)=>`<b>${Q} m³/h of diluate at ${C} g/L leaves unrouted.</b> In a real plant this is recycled — set it as the feed or blend stream of an upstream stage.`,
-  mDiverge:'<b>Recycle loop diverges.</b> The loop returns more flow than it consumes. Reduce the recycled fraction, or specify the sweep as an absolute m³/h instead of a % of the stage feed.',
+  mExt:(Q,C)=>`<b>${Q} ${FU()} of external sweep water at ${C} g/L</b> enters the OARO sweep side. It is counted as a system inlet; recovery is still referred to the raw seawater. A closed design uses an internal recycle instead.`,
+  mUnrouted:(Q,C)=>`<b>${Q} ${FU()} of diluate at ${C} g/L leaves unrouted.</b> In a real plant this is recycled — set it as the feed or blend stream of an upstream stage.`,
+  mDiverge:'<b>Recycle loop diverges.</b> The loop returns more flow than it consumes. Reduce the recycled fraction, or specify the sweep as an absolute flow instead of a % of the stage feed.',
   mConverged:(it)=>`Mass balance converged in ${it} iteration${it>1?'s':''} (residual &lt; 1e-9). Water and salt close on every stage.`,
   mSlow:(it,e)=>`Solver stopped after ${it} iterations, residual ${e} — a recycle loop is converging slowly.`,
   /* ---- telemetry ---- */
@@ -698,11 +716,12 @@ en:{
   st7ok:(P,pm,pc,ty)=>`${P} bar against a ${pm} bar limit for ${ty} — ${pc} % of the rating.`,
   st7bad:(P,pm,d,ty)=>`${P} bar exceeds the ${pm} bar limit for ${ty} by ${d} bar.`,
   st8:'Pumping power',
-  st8lab1:'1 m³/h lifted by 1 bar = 1/36 kW of hydraulic power',
+  st8lab1:'lifting one unit of flow by 1 bar — 1 m³/h·bar = 1/36 kW, 1 m³/d·bar = 1/864 kW',
   st8none:(Pin,Pr,d)=>`The feed already arrives at ${Pin} bar, above the ${Pr} bar needed — no booster pump; the surplus ${d} bar is throttled or taken by an inter-stage device.`,
   st8lab2:'circulating the sweep along the low-pressure side',
   st8lab3:'per m³ of water this stage moves through the membrane',
   notes:'notes',
+  tgTitle:'Design targets', tgRec:'Overall recovery', tgTds:'Product TDS', tgSec:'Specific energy',
   coHint:'Select all and copy, or use the button', coCopy:'Copy', coDone:'Copied ✓',
   tbStream:'Stream', tbQ:'Q (m³/h)', tbC:'C (g/L)', tbSalt:'Salt (kg/h)', tbM:'m (mol/kg)', tbPi:'π (bar)',
   tbFeedIn:'Feed in', tbPerm:'Permeate', tbConc:'Concentrate', tbFeed:'Feed', tbSweepIn:'Sweep in', tbDil:'Diluate out'
@@ -711,6 +730,8 @@ ko:{
   tagline:'SWRO · HPRO · OARO 공정 시뮬레이터',
   presetPick:'프리셋 불러오기…', presetSketch:'스케치 예시: SWRO→SWRO→HPRO→OARO',
   presetSwro:'일반적인 2단 SWRO', presetZld:'OARO ×2 농축 공정',
+  presetPromise:'PROMISE 3안 — RO1·RO2·NF·UHPRO·OARO (33 g/L, 17 °C)',
+
   btnLight:'☀ 밝게', btnDark:'🌙 어둡게', btnMotionOn:'◉ 애니메이션', btnMotionOff:'◌ 애니메이션',
   btnLayout:'⌗ 배치 초기화', btnSave:'💾 저장', btnLoad:'📂 불러오기', btnCsv:'⭳ CSV', btnReport:'📄 보고서',
   ttTheme:'어두운 제어실 테마와 밝은 테마를 전환합니다',
@@ -728,6 +749,7 @@ ko:{
   t_train:'⠿ 를 끌어 순서 변경', t_diag:'실시간 물질수지', t_expand:'모두 펼치기', t_collapse:'모두 접기',
   ttGrip:'끌어서 패널을 이동합니다', ttCollapse:'접기 / 펼치기', ttFocus:'이 패널을 크게 보기',
   ttResize:'끌어서 패널 높이를 조절합니다', ttSplit:'끌어서 좌우 폭을 조절합니다',
+  fUnit:'유량 단위', tipUnit:'모든 유량을 시간당 또는 일당으로 표시합니다. 라벨과 동력 환산(1 m³/h·bar = 1/36 kW, 1 m³/d·bar = 1/864 kW)에만 영향을 주며 입력값을 환산하지는 않습니다.',
   fFlow:'유입 유량', fTds:'유입수 TDS', fTemp:'온도', fPre:'전처리 손실률', fMakeup:'보충수 TDS',
   tipFlow:'전처리 손실 이전의 원수 해수 유입량입니다. 공정은 이 값에 비례해 커지므로, 유량을 두 배로 해도 회수율·염농도·비에너지는 그대로고 절대 유량과 동력만 바뀍니다.',
   tipTds:'원수 해수의 총용존고형물(TDS) 입니다. 35 g/L = 35,000 mg/L 로 일반적인 대양 해수이며, 아라비아만은 40–45, 발트해는 10 미만입니다.',
@@ -741,7 +763,7 @@ ko:{
   tipTake:'해당 공급원에서 이 스테이지로 보낼 비율입니다. 하나의 스트림을 둘로 나눠 보낼 때 사용하며, 합이 100 % 를 넘으면 경고가 표시됩니다.',
   tipBlend:'이 스테이지 공급에 섮이는 두 번째 스트림으로, 염 부하 가중으로 혼합됩니다. OARO 희석수를 상류 스테이지로 되돌리는 등 재순환 루프를 구성할 때 사용합니다.',
   tipSweepSrc:'저압측을 흘르는 스트림입니다. 실제 다단 공정에서는 인접 스테이지의 희석수를 사용하며, “외부 스윈” 은 설계 단계에서 염농도를 직접 가정해 볼 때 유용합니다.',
-  tipSweepMode:'스윈 유량을 스테이지 유입량 대비 %(비율) 또는 고정 m³/h 로 지정합니다. 스윈이 재순환 루프 안에 있을 때는 고정 유량을 사용하세요. 비율로 두면 루프가 스스로 커져 발산할 수 있습니다.',
+  tipSweepMode:'스윈 유량을 스테이지 유입량 대비 %(비율) 또는 고정 유량으로 지정합니다. 스윈이 재순환 루프 안에 있을 때는 고정 유량을 사용하세요. 비율로 두면 루프가 스스로 커져 발산할 수 있습니다.',
   tipSweepQ:'저압측을 흘르는 스윈 유량입니다. 유량이 많을수록 한 번에 덜 희석되어 구동력은 유지되지만 순환 에너지가 늘어납니다.',
   tipTakeSrc:'선택한 공급원에서 스윈으로 사용할 비율입니다.',
   tipSweepP:'스윈 유로에 걸리는 배압입니다. 이 스테이지에 필요한 공급 압력에 그대로 더해지며, 스윈 순환펌프의 부하를 결정합니다.',
@@ -760,7 +782,7 @@ ko:{
   fFrom:'공급 스트림', fTake:'…사용 비율', fTakePct:'%', fBlend:'+ 혼합 스트림', fTakePct2:'%',
   fBlendAdd:'+ 혼합 / 재순환 스트림 추가', fBlendDel:'✕ 혼합 제거',
   fSweepSrc:'스윕 공급원', fSweepTds:'스윕 TDS', fSweepMode:'스윕 유량 지정 방식',
-  mRatio:'스테이지 유입량 대비 %', mFlow:'절대 유량 m³/h', fSweepQ:'스윕 유량', fSweepRatio:'스윕 비율',
+  mRatio:'스테이지 유입량 대비 %', mFlow:'절대 유량', fSweepQ:'스윕 유량', fSweepRatio:'스윕 비율',
   fSweepRatioU:'유입량 대비 %', fTakeSrc:'…사용 비율', fTakeSrcU:'% (공급원 대비)', fSweepP:'스윕측 압력',
   tipSweepTds:'염을 포함한 스윕이 OARO 의 핵심입니다 — 보통 스테이지 유입 TDS 의 60–80 %',
   fSpecBy:'지정 방식', mRec:'회수율', mTarget:'목표 농축수 TDS',
@@ -771,6 +793,7 @@ ko:{
   tipDp:'공급 스페이서를 따라 흐르며 생기는 마찰 손실로, 회수되지 않는 순수 손실입니다. 엘리먼트당 0.3–1 bar, 베셀당 2–4 bar 수준이며 막이 오염될수록 커지기 때문에 세정 시점 판단에 사용됩니다.',
   tipEff:'전력이 수력 압력으로 전환되는 비율(wire-to-water) 입니다. 대형 고압펌프는 80–85 %, 파일럿 설비는 60–72 % 수준입니다. 물질수지에는 영향을 주지 않고 에너지 계산에만 사용됩니다.',
   tipPmax:'엘리먼트와 압력 베셀의 기계적 허용 압력입니다. 계산에는 쓰이지 않고 초과 여부만 점검합니다. SWRO ≈ 83 bar (1200 psi), HPRO ≈ 120 bar, OARO ≈ 70 bar, BWRO ≈ 41 bar.',
+  subNF:'나노여과',
   subSWRO:'해수 역삼투', subHPRO:'고압 역삼투', subOARO:'삼투 보조 역삼투',
   noStages:'스테이지가 없습니다 — 아래에서 SWRO, HPRO 또는 OARO 를 추가하세요.',
   ttUp:'위로', ttDown:'아래로', ttDup:'복제', ttDel:'삭제', ttRename:'이름 변경',
@@ -786,8 +809,8 @@ ko:{
   mOaro:(n,ty)=>`<b>${n}:</b> ${ty} 가 85 g/L 를 넘었습니다 — 이 구간부터는 보통 OARO 가 더 경제적입니다.`,
   mIdle:(n,r)=>`<b>${n}</b> 의 회수율이 ${r} % 에 불과합니다 — 유입 조건이 이미 압력 한계에 있어 이 스테이지의 기여가 거의 없습니다. 삭제하거나, 염을 포함한 스윕을 쓰는 OARO 로 바꾸세요.`,
   mDraw:(pct,port,n)=>`<b>연결 오류:</b> “${n}” 의 ${port} 를 ${pct} % 사용하도록 설정되어 실제 유량보다 많습니다.`,
-  mExt:(Q,C)=>`<b>외부 스윕수 ${Q} m³/h (${C} g/L)</b> 가 OARO 스윕측으로 유입됩니다. 물질수지에는 시스템 유입으로 포함되지만 회수율은 여전히 원수 해수 기준입니다. 실제 폐회로 설계에서는 내부 재순환을 사용합니다.`,
-  mUnrouted:(Q,C)=>`<b>희석수 ${Q} m³/h (${C} g/L) 가 어디에도 연결되지 않은 채 배출됩니다.</b> 실제 플랜트에서는 재순환하므로, 상류 스테이지의 공급 또는 혼합 스트림으로 지정하세요.`,
+  mExt:(Q,C)=>`<b>외부 스윕수 ${Q} ${FU()} (${C} g/L)</b> 가 OARO 스윕측으로 유입됩니다. 물질수지에는 시스템 유입으로 포함되지만 회수율은 여전히 원수 해수 기준입니다. 실제 폐회로 설계에서는 내부 재순환을 사용합니다.`,
+  mUnrouted:(Q,C)=>`<b>희석수 ${Q} ${FU()} (${C} g/L) 가 어디에도 연결되지 않은 채 배출됩니다.</b> 실제 플랜트에서는 재순환하므로, 상류 스테이지의 공급 또는 혼합 스트림으로 지정하세요.`,
   mDiverge:'<b>재순환 루프가 발산합니다.</b> 루프로 되돌아오는 유량이 소비되는 양보다 많습니다. 재순환 비율을 낮추거나, 스윕 유량을 비율(%) 대신 절대 유량(m³/h)으로 지정하세요.',
   mConverged:(it)=>`물질수지가 ${it} 회 반복 만에 수렴했습니다 (잔차 &lt; 1e-9). 모든 스테이지에서 물과 염이 정확히 맞습니다.`,
   mSlow:(it,e)=>`${it} 회 반복 후 종료, 잔차 ${e} — 재순환 루프의 수렴이 느립니다.`,
@@ -839,11 +862,12 @@ ko:{
   st7ok:(P,pm,pc,ty)=>`${P} bar 로 ${ty} 한계 ${pm} bar 대비 ${pc} % 수준입니다.`,
   st7bad:(P,pm,d,ty)=>`${P} bar 로 ${ty} 한계 ${pm} bar 를 ${d} bar 초과합니다.`,
   st8:'펌프 동력',
-  st8lab1:'1 m³/h 를 1 bar 승압 = 1/36 kW 의 수력 동력',
+  st8lab1:'유량 1단위를 1 bar 승압 — 1 m³/h·bar = 1/36 kW, 1 m³/d·bar = 1/864 kW',
   st8none:(Pin,Pr,d)=>`유입수가 이미 ${Pin} bar 로 도달하여 필요한 ${Pr} bar 를 넘습니다 — 승압 펌프가 필요 없으며, 남는 ${d} bar 는 감압되거나 단간 회수 장치로 회수됩니다.`,
   st8lab2:'저압측 스윕 순환에 필요한 동력',
   st8lab3:'이 스테이지가 막을 통과시키는 물 1 m³ 당',
   notes:'안내',
+  tgTitle:'설계 목표', tgRec:'전체 회수율', tgTds:'생산수 TDS', tgSec:'비에너지',
   coHint:'전체 선택 후 복사하거나 버튼을 누르세요', coCopy:'복사', coDone:'복사됨 ✓',
   tbStream:'스트림', tbQ:'유량 (m³/h)', tbC:'농도 (g/L)', tbSalt:'염 (kg/h)', tbM:'m (mol/kg)', tbPi:'π (bar)',
   tbFeedIn:'유입', tbPerm:'투과수', tbConc:'농축수', tbFeed:'유입수', tbSweepIn:'스윕 유입', tbDil:'희석수 유출'
@@ -923,7 +947,8 @@ function mml(src){
 const DEF = {
   SWRO:{ recovery:45, R:99.4, cp:1.15, dP:2.0, ndp:5.0, pumpEff:80, pMax:83  },
   HPRO:{ recovery:30, R:99.0, cp:1.20, dP:3.0, ndp:5.0, pumpEff:80, pMax:120 },
-  OARO:{ recovery:35, R:98.5, cp:1.25, dP:3.0, ndp:5.0, pumpEff:80, pMax:70  }
+  OARO:{ recovery:35, R:98.5, cp:1.25, dP:3.0, ndp:5.0, pumpEff:80, pMax:70  },
+  NF:{   recovery:70, R:35.0, cp:1.10, dP:2.0, ndp:3.0, pumpEff:80, pMax:41  }
 };
 /* stage colours live in CSS so they follow the active theme */
 const TYPECOLOR = new Proxy({}, { get:(_,k)=>CSSV('--'+String(k).toLowerCase()) });
@@ -945,11 +970,22 @@ function mkStage(type, name){
 }
 
 let state = { feed:{ Q:100, C:35, T:20, preLoss:3, freshC:0.5 },
-              econ:{ erd:true, erdEff:96, energy:0.08, hours:8000 }, stages:[] };
+              econ:{ erd:true, erdEff:96, energy:0.08, hours:8000 },
+              units:{ flow:'m3h' },
+              targets:{ on:false, recovery:80, prodTDS:500, sec:2.2 },
+              stages:[] };
+
+/* Flows are stored as a bare number; only the power conversion and the labels
+   depend on whether that number is per hour or per day.
+   1 m3/h at 1 bar = 1/36 kW, so 1 m3/d at 1 bar = 1/864 kW. */
+const FU   = () => (state.units && state.units.flow === 'm3d') ? 'm³/d' : 'm³/h';
+const PDIV = () => (state.units && state.units.flow === 'm3d') ? 864 : 36;
 
 function loadPreset(which){
   uid = 1;
   Object.assign(state.feed, { Q:100, C:35, T:20, preLoss:3, freshC:0.5 });
+  state.units.flow = 'm3h';
+  state.targets.on = false;          /* only a project preset turns the scorecard on */
   if (which === 'swro'){
     const a = mkStage('SWRO','1st stage SWRO'); a.feed=[{src:'FEED',port:'conc',frac:100}]; a.recovery=45;
     const b = mkStage('SWRO','2nd stage SWRO'); b.recovery=15;
@@ -961,6 +997,33 @@ function loadPreset(which){
     const d = mkStage('OARO','OARO #2');        d.recovery=12; d.sweepC=105; d.sweepMode='flow'; d.sweepQ=35;
     b.blend = {src:c.id, port:'dil', frac:100};
     state.stages=[a,b,c,d];
+  } else if (which === 'promise3'){
+    /* PROMISE demonstration plant, design option 3 (3안):
+       AutoStrainer - UF - 1stRO - 2ndRO - NF - UHPRO - OARO
+       Full-scale, representative case 05: raw 33,000 mg/L at 17 C.
+       Rejections are the values that reproduce the design deck's own stream
+       salinities, so the tool's balance can be compared with theirs directly. */
+    state.units.flow = 'm3d';
+    Object.assign(state.feed, { Q:2631.6, C:33.0, T:17, preLoss:5.0, freshC:0.5 });
+    Object.assign(state.econ, { erd:true, erdEff:96, energy:0.08, hours:8000 });
+    Object.assign(state.targets, { on:true, recovery:80, prodTDS:500, sec:2.2 });
+
+    const ro1 = mkStage('SWRO','1st RO');   ro1.feed=[{src:'FEED',port:'conc',frac:100}];
+    ro1.recovery=40.0; ro1.R=99.41; ro1.cp=1.0; ro1.ndp=5; ro1.dP=2; ro1.pMax=83;
+    const ro2 = mkStage('SWRO','2nd RO');
+    ro2.recovery=25.0; ro2.R=99.77; ro2.cp=1.0; ro2.ndp=5; ro2.dP=2; ro2.pMax=83;
+    const nf  = mkStage('NF','NF');
+    nf.recovery=70.0;  nf.R=27.97; nf.cp=1.0; nf.ndp=3; nf.dP=2; nf.pMax=41;
+    const uh  = mkStage('HPRO','UHPRO');
+    uh.recovery=37.9;  uh.R=98.83; uh.cp=1.0; uh.ndp=5; uh.dP=3; uh.pMax=120;
+    uh.feed=[{src:nf.id,port:'perm',frac:100}];
+    const oa  = mkStage('OARO','OARO');
+    oa.recovery=74.5;  oa.R=32.85; oa.cp=1.0; oa.ndp=5; oa.dP=3; oa.pMax=100; oa.pSweep=2;
+    oa.feed=[{src:uh.id,port:'conc',frac:100}];
+    oa.blend={src:nf.id,port:'conc',frac:100};          /* NF reject after Ca/Mg recovery */
+    oa.sweep={src:'EXT',port:'perm',frac:100}; oa.sweepMode='flow'; oa.sweepQ=0; oa.sweepC=0;
+    uh.blend={src:oa.id,port:'dil',frac:100};           /* OARO diluate recycles to UHPRO */
+    state.stages=[ro1,ro2,nf,uh,oa];
   } else {
     const a = mkStage('SWRO','1st stage SWRO'); a.feed=[{src:'FEED',port:'conc',frac:100}]; a.recovery=45;
     const b = mkStage('SWRO','2nd stage SWRO'); b.recovery=15;
@@ -1031,9 +1094,9 @@ function computeStage(s, fd, sw, T, trace){
 
   const eff   = Math.max(0.01, Math.min(1, s.pumpEff/100)); // power
   const dPnet = Math.max(0, Preq - fd.P);
-  const Wp    = fd.Q*dPnet/(36*eff);
+  const Wp    = fd.Q*dPnet/(PDIV()*eff);
   const dPs   = s.type==='OARO' ? Math.max(0, s.pSweep - sw.P) : 0;
-  const Wsweep= s.type==='OARO' ? sw.Q*dPs/(36*eff) : 0;
+  const Wsweep= s.type==='OARO' ? sw.Q*dPs/(PDIV()*eff) : 0;
 
   const out = { s, fd, sw, perm:{Q:Qp,C:Cp,P:0}, conc:{Q:Qc,C:Cc,P:Math.max(0,Preq-s.dP)}, dil,
                 steps:[], r, Cp, piF, piC, piP, piS, piD, Preq, Wp, Wsweep, dPnet, ok };
@@ -1055,14 +1118,14 @@ function computeStage(s, fd, sw, T, trace){
     eq(s1,'Q_f',[
       {src:'Q_1 + Q_2'},
       {src:`${f(fd.parts[0].Q,2)} + ${f(fd.parts[1].Q,2)}`},
-      {src:f(fd.Q,2), unit:'m³/h', res:true}]);
+      {src:f(fd.Q,2), unit:FU(), res:true}]);
     eq(s1,'C_f',[
       {src:'frac(Q_1·C_1 + Q_2·C_2; Q_f)'},
       {src:`frac(${f(fd.parts[0].Q,2)}·${f(fd.parts[0].C,3)} + ${f(fd.parts[1].Q,2)}·${f(fd.parts[1].C,3)}; ${f(fd.Q,2)})`},
       {src:f(fd.C,3), unit:'g/L', res:true}], t('st1lab'));
   } else {
     note(s1, t('st1from')(fd.parts[0] ? fd.parts[0].label : '—'));
-    given(s1,[['Q_f',f(fd.Q,2),'m³/h'],['C_f',f(fd.C,3),'g/L'],['P_in',f(fd.P,2),'bar'],['T',f(T,1),'°C']]);
+    given(s1,[['Q_f',f(fd.Q,2),FU()],['C_f',f(fd.C,3),'g/L'],['P_in',f(fd.P,2),'bar'],['T',f(T,1),'°C']]);
   }
 
   /* --- 2. permeate quality --- */
@@ -1087,8 +1150,8 @@ function computeStage(s, fd, sw, T, trace){
   } else {
     given(s3,[['r',f(s.recovery,2),t('st3spec')]]);
   }
-  eq(s3,'Q_p',[{src:'r·Q_f'},{src:`${f(r,4)}·${f(fd.Q,2)}`},{src:f(Qp,2),unit:'m³/h',res:true}]);
-  eq(s3,'Q_c',[{src:'Q_f − Q_p'},{src:`${f(fd.Q,2)} − ${f(Qp,2)}`},{src:f(Qc,2),unit:'m³/h',res:true}]);
+  eq(s3,'Q_p',[{src:'r·Q_f'},{src:`${f(r,4)}·${f(fd.Q,2)}`},{src:f(Qp,2),unit:FU(),res:true}]);
+  eq(s3,'Q_c',[{src:'Q_f − Q_p'},{src:`${f(fd.Q,2)} − ${f(Qp,2)}`},{src:f(Qc,2),unit:FU(),res:true}]);
 
   /* --- 4. salt balance --- */
   const s4 = step(t('st4'));
@@ -1110,8 +1173,8 @@ function computeStage(s, fd, sw, T, trace){
   if (s.type === 'OARO'){
     const s5 = step(t('st5'));
     note(s5, t('st5note'));
-    given(s5,[['Q_s',f(sw.Q,2),'m³/h'],['C_s',f(sw.C,3),'g/L'],[t('st5src'),sw.label,'']]);
-    eq(s5,'Q_d',[{src:'Q_s + Q_p'},{src:`${f(sw.Q,2)} + ${f(Qp,2)}`},{src:f(dil.Q,2),unit:'m³/h',res:true}]);
+    given(s5,[['Q_s',f(sw.Q,2),FU()],['C_s',f(sw.C,3),'g/L'],[t('st5src'),sw.label,'']]);
+    eq(s5,'Q_d',[{src:'Q_s + Q_p'},{src:`${f(sw.Q,2)} + ${f(Qp,2)}`},{src:f(dil.Q,2),unit:FU(),res:true}]);
     eq(s5,'C_d',[
       {src:'frac(Q_s·C_s + Q_p·C_p; Q_d)'},
       {src:`frac(${f(sw.Q,2)}·${f(sw.C,3)} + ${f(Qp,2)}·${f(Cp,4)}; ${f(dil.Q,2)})`},
@@ -1155,20 +1218,20 @@ function computeStage(s, fd, sw, T, trace){
 
   /* --- 8. power --- */
   const s8 = step(t('st8'));
-  eq(s8,'W',[{src:'frac(Q·ΔP; 36·η)'}],t('st8lab1'));
+  eq(s8,'W',[{src:`frac(Q·ΔP; ${PDIV()}·η)`}],t('st8lab1'));
   if (Preq >= fd.P){
     eq(s8,'ΔP',[{src:'P_feed − P_in'},{src:`${f(Preq,2)} − ${f(fd.P,2)}`},{src:f(dPnet,2),unit:'bar',res:true}]);
   } else {
     flag(s8,'ok', t('st8none')(f(fd.P,2), f(Preq,2), f(fd.P-Preq,2)));
   }
   eq(s8,'W_pump',[
-    {src:'frac(Q_f·ΔP; 36·η)'},
-    {src:`frac(${f(fd.Q,2)}·${f(dPnet,2)}; 36·${f(eff,2)})`},
+    {src:`frac(Q_f·ΔP; ${PDIV()}·η)`},
+    {src:`frac(${f(fd.Q,2)}·${f(dPnet,2)}; ${PDIV()}·${f(eff,2)})`},
     {src:f(Wp,2), unit:'kW', res:true}]);
   if (s.type === 'OARO')
     eq(s8,'W_sweep',[
-      {src:'frac(Q_s·ΔP_s; 36·η)'},
-      {src:`frac(${f(sw.Q,2)}·${f(dPs,2)}; 36·${f(eff,2)})`},
+      {src:`frac(Q_s·ΔP_s; ${PDIV()}·η)`},
+      {src:`frac(${f(sw.Q,2)}·${f(dPs,2)}; ${PDIV()}·${f(eff,2)})`},
       {src:f(Wsweep,2), unit:'kW', res:true}],t('st8lab2'));
   eq(s8,'SEC_stage',[
     {src:'frac(W_pump + W_sweep; Q_p)'},
@@ -1236,7 +1299,7 @@ function solve(quiet){
           const Qs = s.sweepMode === 'flow' ? s.sweepQ : (s.sweepRatio/100)*fd.Q;
           const Cs = s.sweep.src === 'FRESH' ? state.feed.freshC : s.sweepC;
           sw = { Q:Qs, C:Cs, P:0,
-                 label: trace ? `external sweep stream, ${f(Qs,1)} m³/h @ ${f(Cs,2)} g/L` : 'external sweep stream' };
+                 label: trace ? `external sweep stream, ${f(Qs,1)} ${FU()} @ ${f(Cs,2)} g/L` : 'external sweep stream' };
         } else sw = pull(s.sweep, i, feedStream, store);
       }
       const r = computeStage(s, fd, sw, T, trace);
@@ -1284,7 +1347,7 @@ function solve(quiet){
       outlets.push({stage:s, port, Q, C:st.C, P:st.P});
       if (port==='perm'){ prodQ+=Q; prodSalt+=Q*st.C; }
       else if (port==='conc'){ brineQ+=Q; brineSalt+=Q*st.C; brineP+=Q*st.P;
-        if (state.econ.erd) erdKW += Q*st.P*Math.max(0,Math.min(1,state.econ.erdEff/100))/36; }
+        if (state.econ.erd) erdKW += Q*st.P*Math.max(0,Math.min(1,state.econ.erdEff/100))/PDIV(); }
       else { recQ+=Q; recSalt+=Q*st.C; }
     });
   });
@@ -1306,8 +1369,9 @@ function solve(quiet){
     ext:{Q:extQ, C: extQ>0?extSalt/extQ:0},
     pumpKW, erdKW, netKW,
     recovery: state.feed.Q>0 ? prodQ/state.feed.Q*100 : 0,
-    sec: prodQ>0 ? netKW/prodQ : 0,
-    cost: prodQ>0 ? netKW/prodQ*state.econ.energy : 0 };
+    /* kW divided by a per-hour flow is already kWh/m3; a per-day flow needs x24 */
+    sec: prodQ>0 ? netKW/prodQ*(PDIV()/36) : 0,
+    cost: prodQ>0 ? netKW/prodQ*(PDIV()/36)*state.econ.energy : 0 };
 }
 
 /* ==========================================================================
@@ -1505,7 +1569,9 @@ function field(label, val, onch, opt={}){
 function renderFeed(){
   const g = el('div','grid2'); const F = state.feed;
   const U = u => ' <span class="unit">'+u+'</span>';
-  g.appendChild(field(t('fFlow')+U('m³/h'), F.Q, v=>{F.Q=v;refresh();},{step:1,min:0,tip:t('tipFlow')}));
+  g.appendChild(field(t('fFlow')+U(FU()), F.Q, v=>{F.Q=v;refresh();},{step:1,min:0,tip:t('tipFlow')}));
+  g.appendChild(field(t('fUnit'), state.units.flow, v=>{state.units.flow=v;refresh(true);},
+    {options:[{value:'m3h',label:'m³/h'},{value:'m3d',label:'m³/d'}],tip:t('tipUnit')}));
   g.appendChild(field(t('fTds')+U('g/L'),  F.C, v=>{F.C=v;refresh();},{step:0.5,min:0,tip:t('tipTds')}));
   g.appendChild(field(t('fTemp')+U('°C'),F.T, v=>{F.T=v;refresh();},{step:1,tip:t('tipTemp')}));
   g.appendChild(field(t('fPre')+U('%'),F.preLoss,v=>{F.preLoss=v;refresh();},{step:0.5,min:0,tip:t('tipPre')}));
@@ -1613,7 +1679,7 @@ function renderStages(){
         g1.appendChild(field(t('fSweepMode'), s.sweepMode, v=>{s.sweepMode=v;refresh(true);},
           {options:[{value:'ratio',label:t('mRatio')},{value:'flow',label:t('mFlow')}],tip:t('tipSweepMode')}));
         if (s.sweepMode==='flow')
-          g1.appendChild(field(t('fSweepQ')+U('m³/h'), s.sweepQ, v=>{s.sweepQ=v;refresh();},{step:1,min:0,tip:t('tipSweepQ')}));
+          g1.appendChild(field(t('fSweepQ')+U(FU()), s.sweepQ, v=>{s.sweepQ=v;refresh();},{step:1,min:0,tip:t('tipSweepQ')}));
         else
           g1.appendChild(field(t('fSweepRatio')+U(t('fSweepRatioU')), s.sweepRatio, v=>{s.sweepRatio=v;refresh();},{step:5,min:0,tip:t('tipSweepQ')}));
       } else {
@@ -1660,7 +1726,7 @@ function renderStages(){
   });
 
   const add = el('div','addrow');
-  ['SWRO','HPRO','OARO'].forEach(ty=>{
+  ['SWRO','HPRO','OARO','NF'].forEach(ty=>{
     const sub = t('sub'+ty);
     const b = el('button','add',`+ ${ty}<small>${sub}</small>`);
     b.onclick=()=>{ const s=mkStage(ty, ty+' '+(state.stages.filter(x=>x.type===ty).length+1));
@@ -1720,16 +1786,16 @@ function renderKPIs(R){
   const wrap = el('div','kpis');
   const list = [
     ['rec',t('kRec'),   R.recovery,1,'%'],
-    ['pq', t('kProd'),  R.prod.Q,1,'m³/h'],
+    ['pq', t('kProd'),  R.prod.Q,1,FU()],
     ['pc', t('kProdC'), mgl()?R.prod.C*1000:R.prod.C, mgl()?0:3, mgl()?'mg/L':'g/L'],
-    ['bq', t('kBrine'), R.brine.Q,1,'m³/h'],
+    ['bq', t('kBrine'), R.brine.Q,1,FU()],
     ['bc', t('kBrineC'),R.brine.C,1,'g/L'],
     ['cf', t('kCf'),    state.feed.C>0?R.brine.C/state.feed.C:0,2,'×'],
     ['kw', t('kPower'), R.netKW,1,'kW'],
     ['sec',t('kSec'),   R.sec,2,'kWh/m³'],
     ['cost',t('kCost'), R.cost,3,'$/m³'],
     ['yr', t('kYear'),  R.netKW*state.econ.hours/1000,0,'MWh/yr']];
-  if (R.ext.Q > 1e-6) list.splice(1,0,['ext',t('kExt'),R.ext.Q,1,'m³/h']);
+  if (R.ext.Q > 1e-6) list.splice(1,0,['ext',t('kExt'),R.ext.Q,1,FU()]);
 
   list.forEach(([k,name,val,dec,unit])=>{
     const d = el('div','kpi'); d.appendChild(el('div','k',name));
@@ -1768,6 +1834,28 @@ function renderKPIs(R){
   if (R.diverged) add('bad','♾', t('mDiverge'));
   else if (R.err < 1e-9) add('ok','✓', t('mConverged')(R.iter));
   else add('warn','⏳', t('mSlow')(R.iter, R.err.toExponential(2)));
+
+  /* design-target scorecard, when a project preset switches it on */
+  if (state.targets && state.targets.on){
+    const T = state.targets;
+    const rows = [
+      [t('tgRec'),   R.recovery,        T.recovery, '>=', '%',       1],
+      [t('tgTds'),   R.prod.C*1000,     T.prodTDS,  '<=', 'mg/L',    0],
+      [t('tgSec'),   R.sec,             T.sec,      '<=', 'kWh/m³', 2]
+    ];
+    const box = el('div','targets');
+    box.appendChild(el('div','tg-h', t('tgTitle')));
+    rows.forEach(([name,val,lim,op,unit,dec])=>{
+      const pass = op === '>=' ? val >= lim - 1e-9 : val <= lim + 1e-9;
+      const r = el('div','tg-row' + (pass?' pass':' fail'));
+      r.innerHTML = `<span class="tg-n">${name}</span>
+        <span class="tg-v">${f(val,dec)} <small>${unit}</small></span>
+        <span class="tg-l">${op === '>=' ? '≥' : '≤'} ${f(lim,dec)}</span>
+        <span class="tg-b">${pass ? '✓' : '✗'}</span>`;
+      box.appendChild(r);
+    });
+    msgs.appendChild(box);
+  }
 
   const lbl = $('#notesLbl');
   if (lbl) lbl.textContent = t('notes') + (notes.length ? ` (${notes.length})` : '');
@@ -1856,7 +1944,7 @@ function renderDiagram(R){
   /* ---- feed + pretreatment ---- */
   box(16,YC-30,76,62,FIELD,TEAL,10);
   txt(54,YC-5,t('dFeed'),{weight:700,size:12,fill:INK,ls:1.2});
-  txt(54,YC+13, f(state.feed.Q,0)+' m³/h',{size:9.5,mono:true,fill:MUT});
+  txt(54,YC+13, f(state.feed.Q,0)+' '+FU(),{size:9.5,mono:true,fill:MUT});
   txt(54,YC-44, f(state.feed.C,1)+' g/L · '+f(state.feed.T,0)+' °C',{size:9.5,mono:true,fill:MUT});
   pipe(L(92,YC,108,YC),TEAL,'gT',state.feed.Q);
   box(108,YC-30,58,62,PANEL,LINE,10);
@@ -1870,7 +1958,7 @@ function renderDiagram(R){
   pipe(L(W-146,PY,W-130,PY),BLUE,'gB',R.prod.Q);
   box(W-126,PY-27,110,54,FIELD,BLUE,10,{filter:'url(#softglow)'});
   txt(W-71,PY-7,t('dProduct'),{weight:700,size:11,fill:BLUE,ls:1.1});
-  txt(W-71,PY+9, f(R.prod.Q,1)+' m³/h',{size:9.6,mono:true,fill:INK});
+  txt(W-71,PY+9, f(R.prod.Q,1)+' '+FU(),{size:9.6,mono:true,fill:INK});
   txt(W-71,PY+22, showC(R.prod.C),{size:9.6,mono:true,fill:MUT});
 
   /* ---- stages ---- */
@@ -1915,27 +2003,27 @@ function renderDiagram(R){
     const chain = (ref.src==='PREV') || (i>0 && ref.src===state.stages[i-1].id && ref.port==='conc') || (i===0 && ref.src==='FEED');
     if (chain){
       pipe(L(prevX+2,YC,x-4,YC),TEAL,'gT',r.fd.Q);
-      txt((prevX+x)/2, YC-10, f(r.fd.Q,1)+' m³/h',{size:9,mono:true,fill:INK2});
+      txt((prevX+x)/2, YC-10, f(r.fd.Q,1)+' '+FU(),{size:9,mono:true,fill:INK2});
       txt((prevX+x)/2, YC+16, f(r.fd.C,1)+' g/L',{size:9,mono:true,fill:MUT});
     } else {
       const si = state.stages.findIndex(z=>z.id===ref.src);
       const sx = ref.src==='FEED' ? 166 : (si>=0 ? X0+si*(BW+GAP)+BW/2 : x-40);
       pipe(CV(sx,YC+BH/2,x-4,YC,124),GREY,'gT',0,true);
-      txt((sx+x)/2, YC+BH/2+96, '↩ '+f(r.fd.Q,1)+' m³/h @ '+f(r.fd.C,1)+' g/L',{size:9,mono:true,fill:MUT});
+      txt((sx+x)/2, YC+BH/2+96, '↩ '+f(r.fd.Q,1)+' '+FU()+' @ '+f(r.fd.C,1)+' g/L',{size:9,mono:true,fill:MUT});
     }
     /* permeate riser */
     if (r.perm.Q>1e-9 && s.type!=='OARO'){
       pipe(L(x+BW/2,top-3,x+BW/2,PY+5),BLUE,'gB',r.perm.Q);
-      txt(x+BW/2+7,(top+PY)/2-5, f(r.perm.Q,1)+' m³/h',{anchor:'start',size:9,mono:true,fill:BLUE});
+      txt(x+BW/2+7,(top+PY)/2-5, f(r.perm.Q,1)+' '+FU(),{anchor:'start',size:9,mono:true,fill:BLUE});
       txt(x+BW/2+7,(top+PY)/2+8, showC(r.perm.C),{anchor:'start',size:9,mono:true,fill:MUT});
     }
     /* OARO sweep + diluate */
     if (s.type==='OARO'){
       pipe(L(x+34,SY,x+34,YC+BH/2+4),AMB,'gA',r.sw?r.sw.Q:0);
-      txt(x+34,SY+16,t('dSweep')+' '+f(r.sw?r.sw.Q:0,1)+' m³/h',{size:9,mono:true,fill:AMB});
+      txt(x+34,SY+16,t('dSweep')+' '+f(r.sw?r.sw.Q:0,1)+' '+FU(),{size:9,mono:true,fill:AMB});
       txt(x+34,SY+28, f(r.sw?r.sw.C:0,2)+' g/L',{size:9,mono:true,fill:MUT});
       pipe(L(x+BW-34,YC+BH/2+4,x+BW-34,SY),AMB,'gA',r.dil.Q);
-      txt(x+BW-34,SY+16,t('dDil')+' '+f(r.dil.Q,1)+' m³/h',{size:9,mono:true,fill:AMB});
+      txt(x+BW-34,SY+16,t('dDil')+' '+f(r.dil.Q,1)+' '+FU(),{size:9,mono:true,fill:AMB});
       txt(x+BW-34,SY+28, f(r.dil.C,2)+' g/L',{size:9,mono:true,fill:MUT});
     }
   });
@@ -1945,7 +2033,7 @@ function renderDiagram(R){
   pipe(L(lastX+2,YC,W-130,YC),TEAL,'gT',R.brine.Q);
   box(W-126,YC-32,110,64,FIELD,AMB,10,{filter:'url(#softglow)'});
   txt(W-71,YC-11,t('dBrine'),{weight:700,size:11,fill:AMB,ls:1.1});
-  txt(W-71,YC+5, f(R.brine.Q,1)+' m³/h',{size:9.6,mono:true,fill:INK});
+  txt(W-71,YC+5, f(R.brine.Q,1)+' '+FU(),{size:9.6,mono:true,fill:INK});
   txt(W-71,YC+19, f(R.brine.C,1)+' g/L',{size:9.6,mono:true,fill:MUT});
   if (state.econ.erd) txt(W-71,YC+46,'⟳ ERD '+f(state.econ.erdEff,0)+' %',{size:9,mono:true,fill:MUT});
 }
@@ -1984,7 +2072,7 @@ function renderTable(R){
         ${t('rBalNote')(R.ext.Q>1e-6)}</span></td></tr>`;
   if (R.ext.Q>1e-6) h += row(t('rExternal'),t('rExtNote'),R.ext.Q,R.ext.C,0,t('rExtBound'),'out');
   h += `<tr><td>${t('rWater')}</td><td>${t('rInOut')}</td><td colspan="6" style="text-align:left">${f(inQ,2)} − ${f(outQ,2)} =
-        <b>${f(inQ-outQ,4)}</b> m³/h (${t('rError')} ${f(inQ?Math.abs(inQ-outQ)/inQ*100:0,4)} %)</td></tr>`;
+        <b>${f(inQ-outQ,4)}</b> ${FU()} (${t('rError')} ${f(inQ?Math.abs(inQ-outQ)/inQ*100:0,4)} %)</td></tr>`;
   h += `<tr><td>${t('rSaltRow')}</td><td>${t('rInOut')}</td><td colspan="6" style="text-align:left">${f(inS,1)} − ${f(outS,1)} =
         <b>${f(inS-outS,4)}</b> kg/h (${t('rError')} ${f(inS?Math.abs(inS-outS)/inS*100:0,4)} %)</td></tr></tbody>`;
 
@@ -2068,7 +2156,7 @@ STAGE MODEL (same structure for SWRO / HPRO / OARO)
   permeate         C_p = (1 − R)·C_f·β
   pressure         P_feed = β·π_c − π_low + NDP + ΔP_ch (+ P_sweep for OARO)
                    π_low = π_p for SWRO/HPRO, π_sweep,in for OARO (counter-current)
-  power            W = Q·ΔP/(36·η)   [kW, Q in m³/h, ΔP in bar]
+  power            W = Q·ΔP/(36·η)   [kW, Q in ${FU()}, ΔP in bar]
   ERD              W_rec = Q_brine·P_brine·η_ERD/36, on streams leaving the train
 
 OARO SWEEP SIDE
@@ -2107,7 +2195,7 @@ function renderCalcs(R){
     sum.innerHTML = `<span class="pill" style="background:${TYPECOLOR[r.s.type]}">${r.s.type}</span>
       ${t('cStage')} ${i+1} — ${r.s.name}
       <span style="margin-left:auto;font-weight:500;color:#5a7684;font-size:11.4px">
-      ${f(r.fd.Q,1)} m³/h @ ${f(r.fd.C,1)} g/L → ${f(r.conc.C,1)} g/L · ${f(r.Preq,1)} bar</span>`;
+      ${f(r.fd.Q,1)} ${FU()} @ ${f(r.fd.C,1)} g/L → ${f(r.conc.C,1)} g/L · ${f(r.Preq,1)} bar</span>`;
     d.appendChild(sum);
     /* the math is only built when the block is actually open — keeps typing instant */
     const build = ()=>{ if(d.dataset.built) return; d.dataset.built='1'; d.appendChild(stepsNode(r.steps)); };
@@ -2121,18 +2209,18 @@ function renderCalcs(R){
   const pre2 = el('pre'); pre2.style.cssText=pre.style.cssText;
   pre2.textContent =
 `WATER
-   raw feed                 ${f(state.feed.Q,2)} m³/h @ ${f(state.feed.C,3)} g/L
-   external sweep water     ${f(R.ext.Q,2)} m³/h @ ${f(R.ext.C,2)} g/L
-   pretreatment loss        ${f(state.feed.Q*state.feed.preLoss/100,2)} m³/h
-   product (all permeates)  ${f(R.prod.Q,2)} m³/h @ ${f(R.prod.C,4)} g/L (${f(R.prod.C*1000,0)} mg/L)
-   final brine              ${f(R.brine.Q,2)} m³/h @ ${f(R.brine.C,2)} g/L
-   unrouted streams         ${f(R.unrouted.Q,2)} m³/h @ ${f(R.unrouted.C,2)} g/L
+   raw feed                 ${f(state.feed.Q,2)} ${FU()} @ ${f(state.feed.C,3)} g/L
+   external sweep water     ${f(R.ext.Q,2)} ${FU()} @ ${f(R.ext.C,2)} g/L
+   pretreatment loss        ${f(state.feed.Q*state.feed.preLoss/100,2)} ${FU()}
+   product (all permeates)  ${f(R.prod.Q,2)} ${FU()} @ ${f(R.prod.C,4)} g/L (${f(R.prod.C*1000,0)} mg/L)
+   final brine              ${f(R.brine.Q,2)} ${FU()} @ ${f(R.brine.C,2)} g/L
+   unrouted streams         ${f(R.unrouted.Q,2)} ${FU()} @ ${f(R.unrouted.C,2)} g/L
    recovery = Q_product / Q_raw = ${f(R.prod.Q,2)}/${f(state.feed.Q,2)} = ${f(R.recovery,2)} %
 
 ENERGY
 ${pump}
    total pumping            ${f(R.pumpKW,2)} kW
-   ERD recovery             ${f(R.erdKW,2)} kW ${state.econ.erd?`(η = ${f(state.econ.erdEff,0)} % on ${f(R.brine.Q,1)} m³/h at ${f(R.brine.P,1)} bar)`:'(disabled)'}
+   ERD recovery             ${f(R.erdKW,2)} kW ${state.econ.erd?`(η = ${f(state.econ.erdEff,0)} % on ${f(R.brine.Q,1)} ${FU()} at ${f(R.brine.P,1)} bar)`:'(disabled)'}
    net power                ${f(R.netKW,2)} kW
    SEC = net / product      ${f(R.netKW,2)} / ${f(R.prod.Q,2)} = ${f(R.sec,3)} kWh/m³
    energy cost              ${f(R.sec,3)} × $${f(state.econ.energy,3)} = $${f(R.cost,4)} /m³
@@ -2161,7 +2249,7 @@ function refresh(structural){
   R.res.forEach(r=>{
     const m = document.getElementById('mini-'+r.s.id);
     if (m){
-      m.innerHTML = `<b>${t('miniIn')}</b> ${f(r.fd.Q,1)} m³/h @ ${f(r.fd.C,1)} g/L → <b>${t('miniPerm')}</b> ${f(r.perm.Q,1)} @ ${f(r.perm.C,3)}
+      m.innerHTML = `<b>${t('miniIn')}</b> ${f(r.fd.Q,1)} ${FU()} @ ${f(r.fd.C,1)} g/L → <b>${t('miniPerm')}</b> ${f(r.perm.Q,1)} @ ${f(r.perm.C,3)}
         · <b>${t('miniConc')}</b> ${f(r.conc.Q,1)} @ ${f(r.conc.C,1)} · <b style="color:${r.ok?CSSV('--ok'):CSSV('--bad')}">${f(r.Preq,1)} bar</b>`;
       const card = m.closest('.stage'); if(card) card.classList.toggle('bad', !r.ok);
     }
@@ -2276,7 +2364,7 @@ $('#btnCsv').onclick = ()=>{
 $('#btnReport').onclick = ()=>{
   const R=LAST;
   let t = `BRINEFLOW — DESALINATION TRAIN CALCULATION REPORT\ngenerated ${new Date().toLocaleString()}\n`;
-  t += `\nFEED: ${f(state.feed.Q,2)} m³/h, ${f(state.feed.C,3)} g/L, ${f(state.feed.T,1)} °C, pretreatment loss ${f(state.feed.preLoss,1)} %\n`;
+  t += `\nFEED: ${f(state.feed.Q,2)} ${FU()}, ${f(state.feed.C,3)} g/L, ${f(state.feed.T,1)} °C, pretreatment loss ${f(state.feed.preLoss,1)} %\n`;
   t += `TRAIN: ${state.stages.map(s=>s.type).join(' → ')}\n\n${'='.repeat(74)}\n\n`;
   t += modelText(R) + `\n\n${'='.repeat(74)}\n\n`;
   R.res.forEach((r,i)=>{ t += `STAGE ${i+1} — ${r.s.name}  [${r.s.type}]\n${'-'.repeat(74)}\n`;
