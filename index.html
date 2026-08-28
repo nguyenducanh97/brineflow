@@ -409,6 +409,15 @@ footer{padding:14px 20px 30px;color:var(--muted);font-size:11.5px;text-align:cen
 .co-head{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);
   background:var(--head);font-size:12.5px;color:var(--ink)}
 .co-head span{color:var(--muted);font-size:11.5px;flex:1}
+.pm-list{overflow:auto;max-height:min(58vh,460px)}
+.pm-row{display:grid;grid-template-columns:16px minmax(0,1fr) minmax(0,1fr) repeat(4,26px);gap:8px;
+  align-items:center;padding:6px 12px;border-bottom:1px solid var(--line);font-size:12.3px}
+.pm-row:hover{background:var(--bg2)}
+.pm-row.off{opacity:.42}
+.pm-row.off .pm-name{text-decoration:line-through}
+.pm-tag{color:var(--accent);text-align:center}
+.pm-name{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm-grp{color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .co-card textarea{flex:1;min-height:340px;border:none;outline:none;resize:none;padding:12px 14px;
   background:var(--bg1);color:var(--ink2);font:11.6px/1.65 "Cascadia Mono",Consolas,monospace}
 .startup-msg{position:fixed;inset:0;z-index:950;background:#08131d;color:#dceaf3;display:flex;
@@ -459,34 +468,8 @@ footer{padding:14px 20px 30px;color:var(--muted);font-size:11.5px;text-align:cen
   </div>
 
   <div class="toolbar">
-    <select id="preset" class="tb">
-      <option value="" data-i18n="presetPick">Load preset…</option>
-      <option value="sketch" data-i18n="presetSketch">Sketch example: SWRO→SWRO→HPRO→OARO</option>
-      <option value="swro" data-i18n="presetSwro">Conventional 2-stage SWRO</option>
-      <option value="zld" data-i18n="presetZld">Brine concentration with OARO ×2</option>
-      <optgroup label="PROMISE 3안 — full-scale equivalent">
-        <option value="p3-01-full">Case 01 &nbsp;7 °C, 30,000 mg/L</option>
-        <option value="p3-02-full">Case 02 &nbsp;17 °C, 30,000 mg/L</option>
-        <option value="p3-03-full">Case 03 &nbsp;27 °C, 30,000 mg/L</option>
-        <option value="p3-04-full">Case 04 &nbsp;7 °C, 33,000 mg/L</option>
-        <option value="p3-05-full">Case 05 &nbsp;17 °C, 33,000 mg/L</option>
-        <option value="p3-06-full">Case 06 &nbsp;27 °C, 33,000 mg/L</option>
-        <option value="p3-07-full">Case 07 &nbsp;7 °C, 35,000 mg/L</option>
-        <option value="p3-08-full">Case 08 &nbsp;17 °C, 35,000 mg/L</option>
-        <option value="p3-09-full">Case 09 &nbsp;27 °C, 35,000 mg/L</option>
-      </optgroup>
-      <optgroup label="PROMISE 3안 — down-scale side-train (1/11.25)">
-        <option value="p3-01-ds">Case 01 &nbsp;7 °C, 30,000 mg/L</option>
-        <option value="p3-02-ds">Case 02 &nbsp;17 °C, 30,000 mg/L</option>
-        <option value="p3-03-ds">Case 03 &nbsp;27 °C, 30,000 mg/L</option>
-        <option value="p3-04-ds">Case 04 &nbsp;7 °C, 33,000 mg/L</option>
-        <option value="p3-05-ds">Case 05 &nbsp;17 °C, 33,000 mg/L</option>
-        <option value="p3-06-ds">Case 06 &nbsp;27 °C, 33,000 mg/L</option>
-        <option value="p3-07-ds">Case 07 &nbsp;7 °C, 35,000 mg/L</option>
-        <option value="p3-08-ds">Case 08 &nbsp;17 °C, 35,000 mg/L</option>
-        <option value="p3-09-ds">Case 09 &nbsp;27 °C, 35,000 mg/L</option>
-      </optgroup>
-    </select>
+    <select id="preset" class="tb" data-i18n-t="ttPreset"></select>
+    <button class="tb" id="btnPresets" data-i18n-t="ttPresets">★ Presets</button>
     <button class="tb" id="btnLang" data-i18n-t="ttLang">🇰🇷 한국어</button>
     <button class="tb" id="btnTheme" data-i18n-t="ttTheme">☀ Light</button>
     <button class="tb on" id="btnMotion" data-i18n-t="ttMotion">◉ Motion</button>
@@ -593,6 +576,15 @@ const L = {
 en:{
   /* ---- shell ---- */
   tagline:'SWRO · HPRO · OARO train simulator',
+  btnPresets:'★ Presets', ttPresets:'Save the current setup as your own preset, or rename and hide the built-in ones',
+  ttPreset:'Load a preset',
+  gMine:'My presets', gExamples:'Examples',
+  gP3Full:'PROMISE 3안 — full-scale equivalent', gP3Ds:'PROMISE 3안 — down-scale side-train (1/11.25)',
+  pmTitle:'Presets', pmHint:'saved in this browser', pmSave:'+ Save current',
+  pmLoad:'Load', pmRename:'Rename', pmCopy:'Save a copy', pmDelete:'Delete', pmHide:'Hide / show',
+  pmReset:'Restore every built-in preset', pmResetAsk:'Restore all built-in preset names and unhide them?',
+  pmNamePrompt:'Preset name', pmDefaultName:'My setup',
+  pmDeleteAsk:'Delete the preset “%s”? This cannot be undone.',
   presetPick:'Load preset…', presetSketch:'Sketch example: SWRO→SWRO→HPRO→OARO',
   presetSwro:'Conventional 2-stage SWRO', presetZld:'Brine concentration with OARO ×2',
   presetPromise:'PROMISE 3안 — full scale (33 g/L, 17 °C)',
@@ -751,6 +743,15 @@ en:{
 },
 ko:{
   tagline:'SWRO · HPRO · OARO 공정 시뮬레이터',
+  btnPresets:'★ 프리셋', ttPresets:'현재 설정을 나만의 프리셋으로 저장하거나, 기본 프리셋의 이름을 바꾸고 숨깁니다',
+  ttPreset:'프리셋 불러오기',
+  gMine:'내 프리셋', gExamples:'예시',
+  gP3Full:'PROMISE 3안 — 풀스케일 환산', gP3Ds:'PROMISE 3안 — 다운스케일 사이드트레인 (1/11.25)',
+  pmTitle:'프리셋 관리', pmHint:'이 브라우저에 저장됩니다', pmSave:'+ 현재 설정 저장',
+  pmLoad:'불러오기', pmRename:'이름 변경', pmCopy:'복사본 저장', pmDelete:'삭제', pmHide:'숨김 / 표시',
+  pmReset:'기본 프리셋 전체 복원', pmResetAsk:'기본 프리셋 이름을 되돌리고 숨김을 해제할까요?',
+  pmNamePrompt:'프리셋 이름', pmDefaultName:'내 설정',
+  pmDeleteAsk:'프리셋 “%s” 를 삭제할까요? 되돌릴 수 없습니다.',
   presetPick:'프리셋 불러오기…', presetSketch:'스케치 예시: SWRO→SWRO→HPRO→OARO',
   presetSwro:'일반적인 2단 SWRO', presetZld:'OARO ×2 농축 공정',
   presetPromise:'PROMISE 3안 — full scale (33 g/L, 17 °C)',
@@ -919,6 +920,8 @@ function applyLang(){
   if (bm) bm.textContent = document.body.classList.contains('nomotion') ? t('btnMotionOff') : t('btnMotionOn');
   const ea = document.getElementById('expandAll');
   if (ea) ea.textContent = t('t_expand');
+  const bp = document.getElementById('btnPresets'); if (bp) bp.textContent = t('btnPresets');
+  if (typeof rebuildPresetSelect === 'function') rebuildPresetSelect();
   if (typeof renderFeed === 'function'){ renderFeed(); renderEcon(); refresh(true); }
 }
 
@@ -1064,6 +1067,11 @@ function buildP3(caseId, basis){
 }
 
 function loadPreset(which){
+  if (/^my:/.test(which)){
+    const rec = PSTORE.custom[which.slice(3)];
+    if (rec) applySnapshot(rec.snap);
+    return;
+  }
   uid = 1;
   Object.assign(state.feed, { Q:100, C:35, T:20, preLoss:3, freshC:0.5 });
   state.units.flow = 'm3h';
@@ -2576,6 +2584,7 @@ $('#btnReport').onclick = ()=>{
   download('desal-calculation-report.txt', t);
 };
 $('#preset').onchange = e=>{ if(e.target.value){ loadPreset(e.target.value); refresh(true); e.target.value=''; } };
+$('#btnPresets').onclick = presetManager;
 $('#btnLayout').onclick = ()=>{ layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
   document.querySelectorAll('.panel').forEach(p=>{p.classList.remove('collapsed','max');
     p.querySelector('.pbody').style.height=''; });
@@ -2670,6 +2679,138 @@ try{ const th = localStorage.getItem('brineflow.theme'); if (th) setTheme(th); }
 })();
 
 /* ==========================================================================
+   16. PRESET LIBRARY — save your own, rename or hide the built-in ones
+   Everything lives in this browser under brineflow.presets.v1. A saved preset
+   is a full snapshot of the feed, economics, units, targets and every stage,
+   so loading one restores exactly what you had.
+   ========================================================================== */
+const PKEY = 'brineflow.presets.v1';
+let PSTORE = { custom:{}, over:{} };          /* over: built-in id -> {name, hidden} */
+try { const raw = localStorage.getItem(PKEY); if (raw) PSTORE = Object.assign(PSTORE, JSON.parse(raw)); } catch(e){}
+const savePStore = () => { try { localStorage.setItem(PKEY, JSON.stringify(PSTORE)); } catch(e){} };
+
+function snapshotState(){
+  return JSON.parse(JSON.stringify({
+    feed: state.feed, econ: state.econ, units: state.units,
+    targets: state.targets, stages: state.stages }));
+}
+function applySnapshot(sn){
+  Object.assign(state.feed, sn.feed || {});
+  Object.assign(state.econ, sn.econ || {});
+  Object.assign(state.units, sn.units || {});
+  Object.assign(state.targets, sn.targets || {});
+  state.stages = JSON.parse(JSON.stringify(sn.stages || []));
+  uid = 1; state.stages.forEach(s=>{ const m=/^S(\d+)$/.exec(s.id); if(m) uid = Math.max(uid, +m[1]+1); });
+}
+
+/* the built-in catalogue, so it can be relabelled or hidden like any other */
+function builtinGroups(){
+  const money = v => v.toLocaleString('en-US');
+  return [
+    { label: t('gExamples'), items: [
+        ['sketch', t('presetSketch')], ['swro', t('presetSwro')], ['zld', t('presetZld')] ] },
+    { label: t('gP3Full'), items: P3CASES.map(c=>
+        ['p3-'+c.id+'-full', `Case ${c.id}  ·  ${c.T} °C, ${money(Math.round(c.C*1000))} mg/L`]) },
+    { label: t('gP3Ds'), items: P3CASES.map(c=>
+        ['p3-'+c.id+'-ds', `Case ${c.id}  ·  ${c.T} °C, ${money(Math.round(c.C*1000))} mg/L`]) }
+  ];
+}
+const pName = (id, dflt) => (PSTORE.over[id] && PSTORE.over[id].name) || dflt;
+const pHidden = id => !!(PSTORE.over[id] && PSTORE.over[id].hidden);
+
+function rebuildPresetSelect(){
+  const sel = $('#preset'); if (!sel) return;
+  const esc = x => String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  let h = `<option value="">${esc(t('presetPick'))}</option>`;
+  const mine = Object.keys(PSTORE.custom);
+  if (mine.length){
+    h += `<optgroup label="${esc(t('gMine'))}">`;
+    mine.forEach(k=>{ h += `<option value="my:${esc(k)}">${esc(PSTORE.custom[k].name)}</option>`; });
+    h += `</optgroup>`;
+  }
+  builtinGroups().forEach(g=>{
+    const items = g.items.filter(([id])=>!pHidden(id));
+    if (!items.length) return;
+    h += `<optgroup label="${esc(g.label)}">`;
+    items.forEach(([id,dflt])=>{ h += `<option value="${esc(id)}">${esc(pName(id,dflt))}</option>`; });
+    h += `</optgroup>`;
+  });
+  sel.innerHTML = h;
+}
+
+/* ---------------- the manager sheet ---------------- */
+function presetManager(){
+  const old = document.getElementById('pmgr'); if (old) old.remove();
+  const esc = x => String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const box = el('div','copyout'); box.id = 'pmgr';
+  const rows = [];
+
+  Object.keys(PSTORE.custom).forEach(k=>rows.push({id:'my:'+k, key:k, name:PSTORE.custom[k].name, mine:true}));
+  builtinGroups().forEach(g=>g.items.forEach(([id,dflt])=>
+    rows.push({id, name:pName(id,dflt), dflt, mine:false, hidden:pHidden(id), group:g.label})));
+
+  box.innerHTML = `<div class="co-card">
+    <div class="co-head"><b>${esc(t('pmTitle'))}</b>
+      <span>${esc(t('pmHint'))}</span>
+      <button class="run" id="pmNew">${esc(t('pmSave'))}</button>
+      <button class="pbtn" id="pmClose">✕</button></div>
+    <div class="pm-list">${rows.map((r,i)=>`
+      <div class="pm-row${r.hidden?' off':''}" data-i="${i}">
+        <span class="pm-tag">${r.mine?'★':'·'}</span>
+        <span class="pm-name">${esc(r.name)}</span>
+        <span class="pm-grp">${esc(r.group||t('gMine'))}</span>
+        <button class="ic" data-a="load"   title="${esc(t('pmLoad'))}">▸</button>
+        <button class="ic" data-a="rename" title="${esc(t('pmRename'))}">✎</button>
+        <button class="ic" data-a="copy"   title="${esc(t('pmCopy'))}">⧉</button>
+        <button class="ic${r.mine?' del':''}" data-a="del" title="${esc(r.mine?t('pmDelete'):t('pmHide'))}">${r.hidden?'↺':'✕'}</button>
+      </div>`).join('')}</div>
+    <div class="co-head" style="border-top:1px solid var(--line);border-bottom:none">
+      <span>${esc(t('pmReset'))}</span><button class="ic" id="pmResetAll" style="width:auto;padding:0 9px">↺</button></div>
+  </div>`;
+  document.body.appendChild(box);
+  box.onclick = e => { if (e.target === box) box.remove(); };
+  box.querySelector('#pmClose').onclick = ()=>box.remove();
+
+  box.querySelector('#pmNew').onclick = ()=>{
+    const nm = prompt(t('pmNamePrompt'), t('pmDefaultName') + ' ' + (Object.keys(PSTORE.custom).length + 1));
+    if (!nm) return;
+    PSTORE.custom['p'+Date.now().toString(36)] = { name: nm.trim(), snap: snapshotState() };
+    savePStore(); rebuildPresetSelect(); presetManager();
+  };
+  box.querySelector('#pmResetAll').onclick = ()=>{
+    if (!confirm(t('pmResetAsk'))) return;
+    PSTORE.over = {}; savePStore(); rebuildPresetSelect(); presetManager();
+  };
+  box.querySelectorAll('.pm-row').forEach(row=>{
+    const r = rows[+row.dataset.i];
+    row.querySelectorAll('button[data-a]').forEach(b=>{
+      b.onclick = ()=>{
+        const a = b.dataset.a;
+        if (a === 'load'){ loadPreset(r.id); refresh(true); box.remove(); return; }
+        if (a === 'rename'){
+          const nm = prompt(t('pmNamePrompt'), r.name); if (!nm) return;
+          if (r.mine) PSTORE.custom[r.key].name = nm.trim();
+          else PSTORE.over[r.id] = Object.assign({}, PSTORE.over[r.id], {name:nm.trim()});
+        }
+        if (a === 'copy'){
+          const nm = prompt(t('pmNamePrompt'), r.name + ' (copy)'); if (!nm) return;
+          const before = snapshotState();
+          loadPreset(r.id);                       /* build it, snapshot it, put things back */
+          PSTORE.custom['p'+Date.now().toString(36)] = { name: nm.trim(), snap: snapshotState() };
+          applySnapshot(before);
+        }
+        if (a === 'del'){
+          if (r.mine){ if (!confirm(t('pmDeleteAsk').replace('%s', r.name))) return;
+                       delete PSTORE.custom[r.key]; }
+          else PSTORE.over[r.id] = Object.assign({}, PSTORE.over[r.id], {hidden: !r.hidden});
+        }
+        savePStore(); rebuildPresetSelect(); refresh(true); presetManager();
+      };
+    });
+  });
+}
+
+/* ==========================================================================
    11. BOOT
    ========================================================================== */
 buildPanels();
@@ -2678,6 +2819,8 @@ placePanels();
 renderFeed(); renderEcon();
 document.addEventListener('change', e=>{ if(e.target.id==='mgl' || e.target.id==='shownotes') refresh(); });
 document.documentElement.lang = LANG;
+rebuildPresetSelect();
+document.getElementById('btnPresets').textContent = t('btnPresets');
 document.querySelectorAll('[data-i18n]').forEach(e=>{ e.innerHTML = t(e.dataset.i18n); });
 document.querySelectorAll('[data-i18n-t]').forEach(e=>{ e.title = t(e.dataset.i18nT); });
 refresh(true);
