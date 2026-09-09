@@ -200,6 +200,11 @@ doing a second pass to settle the interactions. It bisects on recovery, re-solvi
 and highlights each stage as it lands on it.
 
 On the default train it lifts recovery from 63 % to 65 % with all four stages sitting right under their ratings.
+
+**NDP = ΔP = 0**, the button beside it, zeroes the net driving pressure and the channel ΔP of every
+stage at once, leaving only the osmotic pressure each stage has to overcome — the thermodynamic floor
+for that separation. It is the quickest way to see how much of a quoted feed pressure is physics and
+how much is membrane permeability and hydraulic loss. `Ctrl+Z` puts your values back.
 Watch for a stage that collapses to ~1 % recovery: that means its inlet is already at the limit and the stage is
 earning nothing — the tool flags it, and it is a sign to delete that stage or convert it to OARO.
 
@@ -215,9 +220,13 @@ your operating system's reduced-motion setting automatically.
 
 - Water and salt balance on every stage, converged across recycles by successive substitution
   (under-relaxed, with a divergence guard for loops that feed themselves).
-- Osmotic pressure by van 't Hoff with a concentration-dependent osmotic coefficient fitted to
-  NaCl — 27.1 bar at 35 g/L, 56 bar at 70 g/L, 103 bar at 120 g/L, all at 20 °C. This matters:
-  a plain linear π ∝ C is 10–20 % off in the brine-concentration range these trains work in.
+- Osmotic pressure for **real seawater**, not a NaCl equivalent: the Sharqawy, Lienhard &
+  Zubair (2010) osmotic-coefficient correlation, fitted to natural seawater over 0–120 g/kg
+  and 0–200 °C — 25.3 bar at 35 g/L, 52.2 bar at 70 g/L, 96.2 bar at 120 g/L, all at 25 °C.
+  This matters twice over: a plain linear π ∝ C is 10–20 % off across the brine range these
+  trains work in, and treating sea salt as NaCl overstates π by about 8 % at seawater strength
+  and more as the brine concentrates, because Ca²⁺, Mg²⁺ and SO₄²⁻ are heavier per ion.
+  Past 120 g/kg the coefficient is held at its 120 g/kg value and the stage says so.
 - Permeate quality from observed rejection and concentration polarisation, `C_p = (1 − R)·C_f·β`.
 - Required feed pressure at the limiting (concentrate) end, checked against the membrane rating.
 - Inter-stage pressure carry-over — a stage fed by an upstream concentrate that is already above
@@ -230,9 +239,12 @@ your operating system's reduced-motion setting automatically.
   (the tool sets flux implicitly through the net driving pressure you specify).
 - Scaling and fouling limits: LSI, CaSO₄ / SrSO₄ saturation, silica — the real ceiling on
   recovery in the HPRO/OARO range, well before the pressure limit.
-- Multi-ion speciation (the solution is treated as a NaCl equivalent), boron, and pH effects.
+- Multi-ion speciation — the correlation is fitted to natural seawater as a whole, so it is
+  right for a seawater brine but not for a feed with an unusual ion mix. Boron and pH effects
+  are likewise out of scope, and a partially-rejecting NF membrane is modelled on total TDS,
+  which overstates its driving pressure.
 - Capex, membrane replacement, and pump curves — energy only.
 
 The osmotic-pressure model is the one thing worth checking against your own data before quoting
-numbers from this: swap the fit in the `phiOsm` function near the top of the script if you have
+numbers from this: swap the fit in the `phiSea` function near the top of the script if you have
 a better correlation for your feed.

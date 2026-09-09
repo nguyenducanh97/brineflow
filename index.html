@@ -557,14 +557,32 @@ window.addEventListener('error', function(ev){
     (ev.filename ? '  (line ' + ev.lineno + ')' : '');
 });
 /* ==========================================================================
-   1. PHYSICAL PROPERTY MODEL  (NaCl-equivalent seawater)
+   1. PHYSICAL PROPERTY MODEL  (real seawater, not a NaCl equivalent)
    ========================================================================== */
-const RGAS = 0.083145;          // L·bar·mol⁻¹·K⁻¹
-const MW   = 58.44;             // g/mol, NaCl equivalent
+const RGAS  = 0.083145;         // L·bar·mol⁻¹·K⁻¹
+const M_SEA = 31.4038;          // g of sea salt per mole of the ions it releases
 
-const density  = C => 1000 + 0.755 * C;                       // kg/m³ from g/L
-const molality = C => (C / MW) / ((density(C) - C) / 1000);    // mol per kg water
-const phiOsm   = m => 0.9 + 0.03 * m + 0.0075 * m * m;         // osmotic coefficient (NaCl fit)
+const density  = C => 1000 + 0.755 * C;               // kg/m³ from g/L
+const salinity = C => 1000 * C / density(C);          // g of salt per kg of solution
+
+/* Osmotic pressure counts particles, and sea salt is not NaCl: its Ca²⁺, Mg²⁺
+   and SO₄²⁻ are heavier per ion, so a gram of it releases fewer moles of ions than
+   a gram of NaCl. Treating seawater as a NaCl equivalent therefore overstates π by
+   roughly 8 % at seawater strength and more as the brine concentrates — which is
+   exactly the offset that made this tool read high against published designs.
+   Osmotic coefficient: Sharqawy, Lienhard & Zubair, Desalination and Water
+   Treatment 16 (2010) 354–380; fitted to natural seawater, 0–120 g/kg, 0–200 °C. */
+const PHI_A = [ 8.9453233003e-1,  4.1560737424e-4, -4.6262121398e-6,  2.2211195897e-11,
+               -1.1445456438e-4, -1.4783462366e-6, -1.3526263499e-11,  7.0132355546e-6,
+                5.6960486681e-8, -2.8624032584e-10];
+function phiSea(S, T){                                 // S in g/kg, T in °C
+  const a = PHI_A;
+  return a[0] + a[1]*T + a[2]*T*T + a[3]*Math.pow(T,4)
+       + a[4]*S + a[5]*S*T + a[6]*S*Math.pow(T,3)
+       + a[7]*S*S + a[8]*S*S*T + a[9]*S*S*T*T;
+}
+const ionMolality = S => (S / (1000 - S)) * (1000 / M_SEA);   // mol of ions per kg water
+const PHI_SMAX = 120;                                  // the correlation's fitted ceiling
 
 /* Membrane water permeability climbs steeply with temperature - the usual
    polyamide correction, referenced to Tref. A design holds the production rate
@@ -580,15 +598,12 @@ function ndpAt(ndpRef, T){
   return ndpRef / TCF(T, c.Tref);
 }
 
-function osm(C, T){
-  if (C <= 0) return 0;
-  const m = molality(C), p = phiOsm(m);
-  return p * 2 * m * RGAS * (T + 273.15);
-}
 function osmDetail(C, T){
-  const m = molality(C), p = phiOsm(m);
-  return { m, phi:p, rho:density(C), pi: C <= 0 ? 0 : p * 2 * m * RGAS * (T + 273.15) };
+  if (C <= 0) return { S:0, m:0, phi:phiSea(0,T), rho:density(0), pi:0, extrap:false };
+  const S = salinity(C), m = ionMolality(S), p = phiSea(Math.min(S, PHI_SMAX), T);
+  return { S, m, phi:p, rho:density(C), pi: p * m * RGAS * (T + 273.15), extrap: S > PHI_SMAX };
 }
+function osm(C, T){ return C <= 0 ? 0 : osmDetail(C, T).pi; }
 
 /* ==========================================================================
    1b. LANGUAGE — English / 한국어
@@ -692,6 +707,8 @@ en:{
   ttReorder:'Drag to reorder',
   autoT1:'⚡ Auto-tune', autoT2:'set every recovery so each stage lands at', autoT3:'% of its pressure limit',
   autoRun:'Run',
+  btnZeroP:'NDP = ΔP = 0',
+  ttZeroP:'Sets the net driving pressure and the channel ΔP of every stage to zero, leaving only the osmotic pressure the stage has to overcome — the thermodynamic floor for that separation. Useful for checking how much of a quoted feed pressure is physics and how much is membrane and hydraulics. Ctrl+Z restores your values.',
   miniIn:'in', miniPerm:'perm', miniConc:'conc',
   /* ---- KPIs ---- */
   kRec:'Recovery of seawater', kExt:'External sweep water', kProd:'Product water', kProdC:'Product TDS',
@@ -754,9 +771,11 @@ en:{
   st5note:'Instead of collecting the permeate as product, a <b>saline sweep</b> flows along the low-pressure side and picks the permeated water up. Its osmotic pressure cancels most of the brine\'s, which is exactly why this stage can keep concentrating without reaching the pressure an HPRO would need.',
   st5src:'source', st5lab:'the sweep leaves diluted — this diluate is what a real cascade recycles',
   st6:(T)=>`Osmotic pressures at ${T} °C`,
-  st6lab1:'van \'t Hoff with a concentration-dependent osmotic coefficient φ, i = 2 for NaCl',
-  st6lab2:'molality, mol per kg of water — ρ = 1000 + 0.755·C',
-  st6lab3:'fitted to NaCl data over 0–4 mol/kg',
+  st6lab1:'osmotic pressure from the moles of ions in the water and the seawater osmotic coefficient',
+  st6lab2:'salinity as g of salt per kg of solution — ρ = 1000 + 0.755·C',
+  st6lab2b:'moles of ions per kg of water; 31.4038 g is the mass of sea salt that releases one mole of ions — more than NaCl\'s 29.22 g, which is why seawater exerts less osmotic pressure per gram',
+  st6lab3:'Sharqawy, Lienhard & Zubair (2010), fitted to natural seawater over 0–120 g/kg and 0–200 °C',
+  st6extrap:(S)=>`This stream is at ${S} g/kg, past the 120 g/kg the correlation was fitted to. The coefficient is held at its 120 g/kg value, so the osmotic pressure here is an extrapolation — read it as indicative.`,
   st6lab4:'worked through for the concentrate — the stream that sets the pressure',
   st7:'Feed pressure the stage needs',
   st7note:(oaro)=>`The hardest point in the element is the <b>concentrate end</b>: the salt is at its most concentrated there, so pressure that is enough at that point is enough everywhere. ${oaro?'Counter-current flow puts the fresh sweep inlet against that end.':''}`,
@@ -773,7 +792,7 @@ en:{
   notes:'notes',
   tgTitle:'Design targets', tgRec:'Overall recovery', tgTds:'Product TDS', tgSec:'Specific energy',
   coHint:'Select all and copy, or use the button', coCopy:'Copy', coDone:'Copied ✓',
-  tbStream:'Stream', tbQ:'Q', tbC:'C (g/L)', tbSalt:'Salt', tbM:'m (mol/kg)', tbPi:'π (bar)',
+  tbStream:'Stream', tbQ:'Q', tbC:'C (g/L)', tbSalt:'Salt', tbS:'S (g/kg)', tbM:'b (mol/kg)', tbPi:'π (bar)',
   tbFeedIn:'Feed in', tbPerm:'Permeate', tbConc:'Concentrate', tbFeed:'Feed', tbSweepIn:'Sweep in', tbDil:'Diluate out'
 },
 ko:{
@@ -867,6 +886,8 @@ ko:{
   ttReorder:'끌어서 순서 변경',
   autoT1:'⚡ 자동 조정', autoT2:'각 스테이지가 최대 압력의', autoT3:'% 에 오도록 회수율을 자동 설정',
   autoRun:'실행',
+  btnZeroP:'NDP = ΔP = 0',
+  ttZeroP:'모든 스테이지의 순구동압력과 유로 ΔP 를 0 으로 두어, 극복해야 할 삼투압만 남깁니다 — 해당 분리의 열역학적 하한입니다. 제시된 공급 압력 중 얼마가 물리이고 얼마가 막·유동 손실인지 확인할 때 유용합니다. Ctrl+Z 로 되돌립니다.',
   miniIn:'유입', miniPerm:'투과', miniConc:'농축',
   kRec:'해수 기준 회수율', kExt:'외부 스윕 수량', kProd:'생산수량', kProdC:'생산수 TDS',
   kBrine:'최종 농축수량', kBrineC:'최종 농축수 TDS', kCf:'농축 배수', kPower:'순 소비 동력',
@@ -923,9 +944,11 @@ ko:{
   st5note:'투과수를 생산수로 뽑는 대신, <b>염을 포함한 스윕</b> 이 저압측을 흐르며 투과된 물을 받아냅니다. 스윕의 삼투압이 농축수 삼투압의 상당 부분을 상쇄하기 때문에, HPRO 만큼 높은 압력 없이도 계속 농축할 수 있습니다.',
   st5src:'공급원', st5lab:'스윕은 희석되어 나갑니다 — 실제 다단 공정에서는 이 희석수를 재순환합니다',
   st6:(T)=>`${T} °C 에서의 삼투압`,
-  st6lab1:'농도 의존 삼투계수 φ 를 적용한 van \'t Hoff 식, NaCl 이므로 i = 2',
-  st6lab2:'몰랄농도, 물 1 kg 당 mol — ρ = 1000 + 0.755·C',
-  st6lab3:'0–4 mol/kg 구간의 NaCl 실측치에 맞춘 상관식',
+  st6lab1:'물 속 이온 몰 수와 해수 삼투계수로 구한 삼투압',
+  st6lab2:'용액 1 kg 당 염류 g 수 — ρ = 1000 + 0.755·C',
+  st6lab2b:'물 1 kg 당 이온 mol 수. 31.4038 g 은 이온 1 mol 을 내는 해수 염류의 질량으로, NaCl 의 29.22 g 보다 무겁기 때문에 같은 g 당 삼투압이 낮습니다',
+  st6lab3:'Sharqawy, Lienhard & Zubair (2010) 해수 상관식, 0–120 g/kg · 0–200 °C 적합',
+  st6extrap:(S)=>`이 스트림은 ${S} g/kg 로 상관식 적합 범위(120 g/kg)를 벗어납니다. 계수를 120 g/kg 값으로 고정하므로 이 삼투압은 외삽값입니다.`,
   st6lab4:'압력을 결정하는 농축수에 대해 대입한 계산',
   st7:'이 스테이지에 필요한 공급 압력',
   st7note:(oaro)=>`엘리먼트에서 가장 불리한 지점은 <b>농축수 출구</b> 입니다. 그 지점의 농도가 가장 높으므로, 여기서 압력이 충분하면 전 구간에서 충분합니다. ${oaro?'향류 흐름이므로 이 지점에는 스윕 입구(저염) 가 마주합니다.':''}`,
@@ -942,7 +965,7 @@ ko:{
   notes:'안내',
   tgTitle:'설계 목표', tgRec:'전체 회수율', tgTds:'생산수 TDS', tgSec:'비에너지',
   coHint:'전체 선택 후 복사하거나 버튼을 누르세요', coCopy:'복사', coDone:'복사됨 ✓',
-  tbStream:'스트림', tbQ:'유량', tbC:'농도 (g/L)', tbSalt:'염', tbM:'m (mol/kg)', tbPi:'π (bar)',
+  tbStream:'스트림', tbQ:'유량', tbC:'농도 (g/L)', tbSalt:'염', tbS:'S (g/kg)', tbM:'b (mol/kg)', tbPi:'π (bar)',
   tbFeedIn:'유입', tbPerm:'투과수', tbConc:'농축수', tbFeed:'유입수', tbSweepIn:'스윕 유입', tbDil:'희석수 유출'
 }};
 
@@ -1382,22 +1405,24 @@ function computeStage(s, fd, sw, T, trace){
 
   /* --- 6. osmotic pressures --- */
   const s6 = step(t('st6')(f(T,1)));
-  eq(s6,'π',[{src:'φ·i·m·R·T'}],t('st6lab1'));
-  eq(s6,'m',[{src:'frac(frac(C; M); frac(ρ − C; 1000))'}],t('st6lab2'));
-  eq(s6,'φ',[{src:'0.90 + 0.030·m + 0.0075·m²'}],t('st6lab3'));
+  eq(s6,'π',[{src:'φ·b·R·T'}],t('st6lab1'));
+  eq(s6,'S',[{src:'frac(1000·C; ρ)'}],t('st6lab2'));
+  eq(s6,'b',[{src:'frac(S; 1000 − S)·frac(1000; 31.4038)'}],t('st6lab2b'));
+  eq(s6,'φ',[{src:'φ(S, T)'}],t('st6lab3'));
   const prows = [
-    [t('tbFeed'),   f(fd.C,3), f(dF.m,4), f(dF.phi,4), f(piF,2)],
-    [t('tbConc'),   f(Cc,3),   f(dC.m,4), f(dC.phi,4), f(piC,2)],
-    [t('tbPerm'),   f(Cp,4),   f(dPp.m,4),f(dPp.phi,4),f(piP,3)]];
+    [t('tbFeed'),   f(fd.C,3), f(dF.S,2),  f(dF.m,4), f(dF.phi,4), f(piF,2)],
+    [t('tbConc'),   f(Cc,3),   f(dC.S,2),  f(dC.m,4), f(dC.phi,4), f(piC,2)],
+    [t('tbPerm'),   f(Cp,4),   f(dPp.S,3), f(dPp.m,4),f(dPp.phi,4),f(piP,3)]];
   if (s.type === 'OARO'){
-    prows.push([t('tbSweepIn'), f(sw.C,3),  f(dS.m,4), f(dS.phi,4), f(piS,2)]);
-    prows.push([t('tbDil'),     f(dil.C,3), f(dD.m,4), f(dD.phi,4), f(piD,2)]);
+    prows.push([t('tbSweepIn'), f(sw.C,3),  f(dS.S,2), f(dS.m,4), f(dS.phi,4), f(piS,2)]);
+    prows.push([t('tbDil'),     f(dil.C,3), f(dD.S,2), f(dD.m,4), f(dD.phi,4), f(piD,2)]);
   }
-  tblv(s6,[t('tbStream'),t('tbC'),t('tbM'),'φ',t('tbPi')],prows);
+  tblv(s6,[t('tbStream'),t('tbC'),t('tbS'),t('tbM'),'φ',t('tbPi')],prows);
   eq(s6,'π_c',[
-    {src:'φ·2·m·R·T'},
-    {src:`${f(dC.phi,4)}·2·${f(dC.m,4)}·${f(RGAS,6)}·${f(T+273.15,2)}`},
+    {src:'φ·b·R·T'},
+    {src:`${f(dC.phi,4)}·${f(dC.m,4)}·${f(RGAS,6)}·${f(T+273.15,2)}`},
     {src:f(piC,2), unit:'bar', res:true}],t('st6lab4'));
+  if (dC.extrap) flag(s6,'warn', t('st6extrap')(f(dC.S,0)));
 
   /* --- 7. required pressure --- */
   const s7 = step(t('st7'));
@@ -1957,7 +1982,9 @@ function renderStages(){
     `<b>${t('autoT1')}</b><span>${t('autoT2')}</span>
      <input type="number" id="tuneTarget" value="95" min="40" max="100" step="1">
      <span>${t('autoT3')}</span>
-     <button class="run" id="btnTune"><span class="spin"></span>${t('autoRun')}</button>`);
+     <button class="run" id="btnTune"><span class="spin"></span>${t('autoRun')}</button>
+     <button class="ic" id="btnZeroP" style="width:auto;padding:0 10px;font-size:11px"
+             title="${t('ttZeroP')}">${t('btnZeroP')}</button>`);
 
   PBODY.train.innerHTML='';
   PBODY.train.append(host, add, colr, auto);
@@ -1966,6 +1993,10 @@ function renderStages(){
   });
   colr.querySelector('#colReset').onclick = resetColors;
   $('#btnTune').onclick = ()=>autoTune(parseFloat($('#tuneTarget').value)||95);
+  /* strip every stage back to its pure osmotic requirement - what the feed pressure
+     would be with a membrane of infinite permeability and a frictionless channel.
+     refresh() schedules a history entry, so Ctrl+Z puts the real values back. */
+  $('#btnZeroP').onclick = ()=>{ state.stages.forEach(z=>{ z.ndp = 0; z.dP = 0; }); refresh(true); };
 }
 function move(i,d){ const j=i+d; if(j<0||j>=state.stages.length) return;
   const [m]=state.stages.splice(i,1); state.stages.splice(j,0,m); refresh(true); }
@@ -2470,13 +2501,18 @@ function stepsToText(steps){
 
 function modelText(R){
   return `PROPERTY MODEL
-  The solution is treated as a NaCl equivalent of the real seawater ion mix.
+  Real seawater, not a NaCl equivalent. Sea salt carries Ca2+, Mg2+ and SO4 2-, which
+  are heavier per ion, so a gram of it releases fewer moles of particles than a gram of
+  NaCl and exerts correspondingly less osmotic pressure - about 8 % less at seawater
+  strength, and the gap widens as the brine concentrates.
   density        ρ = 1000 + 0.755·C                      [kg/m³], C in g/L
-  molality       m = (C/58.44)/((ρ − C)/1000)            [mol per kg water]
-  osmotic coeff. φ = 0.90 + 0.030·m + 0.0075·m²          (fit of NaCl data, 0–4 mol/kg)
-  osmotic press. π = φ·i·m·R·T , i = 2 , R = 0.083145 L·bar/(mol·K)
-  check: 35 g/L at 20 °C → π = ${f(osm(35,20),2)} bar (literature ≈ 27 bar)
-         70 g/L → ${f(osm(70,20),2)} bar , 120 g/L → ${f(osm(120,20),2)} bar
+  salinity       S = 1000·C/ρ                             [g salt per kg solution]
+  ion molality   b = S/(1000−S) · 1000/31.4038            [mol of ions per kg water]
+  osmotic coeff. φ = φ(S,T)  Sharqawy, Lienhard & Zubair (2010), fitted 0–120 g/kg, 0–200 °C
+  osmotic press. π = φ·b·R·T , R = 0.083145 L·bar/(mol·K)
+  check: 35 g/L at 25 °C → π = ${f(osm(35,25),2)} bar (seawater ≈ 25.5 bar)
+         70 g/L → ${f(osm(70,25),2)} bar , 120 g/L → ${f(osm(120,25),2)} bar
+  past 120 g/kg the coefficient is held at its 120 g/kg value and the stage says so
 
 STAGE MODEL (same structure for SWRO / HPRO / OARO)
   water balance    Q_f = Q_p + Q_c
