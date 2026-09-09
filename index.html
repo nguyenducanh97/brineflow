@@ -699,6 +699,7 @@ en:{
   dStage:'STAGE', dNa:'model n/a', dSweep:'sweep', dDil:'diluate', dCout:'C_out', dOf:'of',
   lgFeed:'Feed / concentrate', lgPerm:'Permeate (product)', lgSweep:'OARO sweep / diluate', lgRoute:'Routed / recycled stream',
   /* ---- stream table ---- */
+  ttPcol:'The pressure of that stream itself. A concentrate leaves at the stage feed pressure less the channel loss, so it reads lower than the P_feed quoted in the calculation.',
   thSec:'SEC', thSecOf:'of product', rPlantSec:'▸ Whole plant, net of energy recovery',
   rErdRow:'Energy recovery', rErdNote:'credit returned by the ERD',
   thStage:'Stage', thStream:'Stream', thQ:'Q', thTds:'TDS', thSalt:'Salt', thP:'P', thNote:'Note',
@@ -748,7 +749,8 @@ en:{
   st8lab1:'lifting one unit of flow by 1 bar — 1 m³/h·bar = 1/36 kW, 1 m³/d·bar = 1/864 kW',
   st8none:(Pin,Pr,d)=>`The feed already arrives at ${Pin} bar, above the ${Pr} bar needed — no booster pump; the surplus ${d} bar is throttled or taken by an inter-stage device.`,
   st8lab2:'circulating the sweep along the low-pressure side',
-  st8lab3:'per m³ of water this stage moves through the membrane',
+  st8lab3:'per m³ of water this stage itself moves through the membrane — the right figure for sizing this stage\'s own pump',
+  st8lab4:'the same power measured against the plant\'s product, which is what the stream table column shows — those add up to the whole-plant figure, the ones above do not',
   notes:'notes',
   tgTitle:'Design targets', tgRec:'Overall recovery', tgTds:'Product TDS', tgSec:'Specific energy',
   coHint:'Select all and copy, or use the button', coCopy:'Copy', coDone:'Copied ✓',
@@ -862,6 +864,7 @@ ko:{
   dPreTitle:'전처리', dPreTech1:'Auto Strainer', dPreTech2:'→ UF (또는 DMF)', dBus:'투과수  라인', dProduct:'생산수', dBrine:'농축수 / C',
   dStage:'스테이지', dNa:'모델 미적용', dSweep:'스윕', dDil:'희석수', dCout:'유출 C', dOf:'/',
   lgFeed:'유입수 / 농축수', lgPerm:'투과수 (생산수)', lgSweep:'OARO 스윕 / 희석수', lgRoute:'연결 / 재순환 스트림',
+  ttPcol:'해당 스트림 자체의 압력입니다. 농축수는 공급 압력에서 유로 손실을 물은 값으로 나가므로 계산 상세의 P_feed 보다 낮게 표시됩니다.',
   thSec:'비에너지', thSecOf:'생산수 기준', rPlantSec:'▸ 전체 공정 (에너지 회수 반영)',
   rErdRow:'에너지 회수', rErdNote:'ERD 회수량',
   thStage:'스테이지', thStream:'스트림', thQ:'유량', thTds:'TDS', thSalt:'염', thP:'압력', thNote:'비고',
@@ -910,7 +913,8 @@ ko:{
   st8lab1:'유량 1단위를 1 bar 승압 — 1 m³/h·bar = 1/36 kW, 1 m³/d·bar = 1/864 kW',
   st8none:(Pin,Pr,d)=>`유입수가 이미 ${Pin} bar 로 도달하여 필요한 ${Pr} bar 를 넘습니다 — 승압 펌프가 필요 없으며, 남는 ${d} bar 는 감압되거나 단간 회수 장치로 회수됩니다.`,
   st8lab2:'저압측 스윕 순환에 필요한 동력',
-  st8lab3:'이 스테이지가 막을 통과시키는 물 1 m³ 당',
+  st8lab3:'이 스테이지가 막을 통과시키는 물 1 m³ 당 — 해당 스테이지 펌프 용량 산정에 쓰는 값',
+  st8lab4:'같은 동력을 전체 생산수 기준으로 환산한 값으로, 스트림 표의 열에 표시되는 숫자입니다 — 이 값들은 합치면 전체 공정 값이 되지만, 위의 값은 그렇지 않습니다',
   notes:'안내',
   tgTitle:'설계 목표', tgRec:'전체 회수율', tgTds:'생산수 TDS', tgSec:'비에너지',
   coHint:'전체 선택 후 복사하거나 버튼을 누르세요', coCopy:'복사', coDone:'복사됨 ✓',
@@ -2327,7 +2331,7 @@ function renderTable(R){
       <td>${sec===undefined?'':f(sec,3)}</td>
       <td style="text-align:left;color:var(--muted)">${note||''}</td></tr>`;
   let h = `<thead><tr><th>${t('thStage')}</th><th>${t('thStream')}</th><th>${t('thQ')}<br>${FU()}</th><th>${t('thTds')}<br>${mgl()?'mg/L':'g/L'}</th>
-    <th>${t('thSalt')}<br>${MU()}</th><th><span style="text-transform:none">π</span><br>bar</th><th>${t('thP')}<br>bar</th>
+    <th>${t('thSalt')}<br>${MU()}</th><th><span style="text-transform:none">π</span><br>bar</th><th title="${t('ttPcol')}">${t('thP')}<br>bar</th>
     <th>${t('thSec')}<br>kWh/m³ ${t('thSecOf')}</th><th>${t('thNote')}</th></tr></thead><tbody>`;
   h += row(t('rFeed'),t('rRaw'),state.feed.Q,state.feed.C,0,t('rInlet'),'grp');
   h += row(t('rPre'),t('rTo1'),R.feedStream.Q,R.feedStream.C,0,t('rLoss')(f(state.feed.preLoss,1)));
@@ -2484,7 +2488,22 @@ function renderCalcs(R){
       ${f(r.fd.Q,1)} ${FU()} @ ${f(r.fd.C,1)} g/L → ${f(r.conc.C,1)} g/L · ${f(r.Preq,1)} bar</span>`;
     d.appendChild(sum);
     /* the math is only built when the block is actually open — keeps typing instant */
-    const build = ()=>{ if(d.dataset.built) return; d.dataset.built='1'; d.appendChild(stepsNode(r.steps)); };
+    const build = ()=>{
+      if (d.dataset.built) return; d.dataset.built='1';
+      /* the stream table measures every stage against one denominator - the plant's
+         product - so the column can be added up. Show that figure here as well, next
+         to the stage's own, or the two panels look like they disagree. */
+      const last = r.steps[r.steps.length-1];
+      if (last && last.items && !last.shared && r.perm.Q > 1e-9){
+        last.shared = true;
+        const kS = (PDIV()/36)/Math.max(R.prod.Q,1e-9);
+        last.items.push({k:'eq', lhs:'SEC_share', rows:[
+          {src:'frac(W_pump + W_sweep; Q_product)'},
+          {src:`frac(${f(r.Wp+r.Wsweep,2)}; ${f(R.prod.Q,2)})${PDIV()===36?'':' \u00b7 24'}`},
+          {src:f((r.Wp+r.Wsweep)*kS,3), unit:'kWh/m\u00b3', res:true}], lab:t('st8lab4')});
+      }
+      d.appendChild(stepsNode(r.steps));
+    };
     d.addEventListener('toggle',()=>{ if(d.open) build(); });
     if (openIds.has(r.s.id)){ d.open = true; build(); }
     host.appendChild(d);
