@@ -566,6 +566,20 @@ const density  = C => 1000 + 0.755 * C;                       // kg/m³ from g/L
 const molality = C => (C / MW) / ((density(C) - C) / 1000);    // mol per kg water
 const phiOsm   = m => 0.9 + 0.03 * m + 0.0075 * m * m;         // osmotic coefficient (NaCl fit)
 
+/* Membrane water permeability climbs steeply with temperature - the usual
+   polyamide correction, referenced to Tref. A design holds the production rate
+   fixed, so the net driving pressure needed to make that water falls by the same
+   factor: NDP(T) = NDP(Tref) / TCF(T). Osmotic pressure still rises with T, but
+   far more slowly, so the feed pressure comes down on balance. */
+function TCF(T, Tref){
+  return Math.exp(2640*(1/(273.15+Tref) - 1/(273.15+T)));
+}
+function ndpAt(ndpRef, T){
+  const c = state.tcf;
+  if (!c || !c.on) return ndpRef;
+  return ndpRef / TCF(T, c.Tref);
+}
+
 function osm(C, T){
   if (C <= 0) return 0;
   const m = molality(C), p = phiOsm(m);
@@ -625,6 +639,11 @@ en:{
   tipFlow:'Raw seawater drawn into the plant, before pretreatment losses. The train scales with it: double the flow and recovery, salinities and specific energy stay put — only absolute flows and power move.',
   tipTds:'Total dissolved solids of the raw seawater. 35 g/L = 35,000 mg/L, typical open ocean; the Arabian Gulf runs 40–45, the Baltic under 10.',
   tipTemp:'Feed temperature. It sets osmotic pressure through π = φ·i·m·R·T, so warm water needs more pressure — roughly 0.35 % per °C. Real membranes also pass more water and more salt when warm; only the osmotic effect is modelled here.',
+  fTcf:'Temperature correction', fTcfOn:'On — hold output, NDP follows T', fTcfOff:'Off — NDP as typed',
+  fTref:'NDP quoted at',
+  tipTcf:'A design fixes the production rate, not the leftover pressure. Membrane permeability rises about 1.9x from 7 to 27 °C, so making the same water needs proportionally less net driving pressure: NDP(T) = NDP(Tref) / TCF. With this on, a warmer feed needs a lower feed pressure even though its osmotic pressure is higher — which is how a membrane projection behaves. Switch it off to use the NDP exactly as typed.',
+  tipTref:'The temperature your net driving pressure figure refers to. Membrane data is normally quoted at 25 °C.',
+  st7tcf:(Tr,T)=>`polyamide temperature correction, NDP quoted at ${Tr} °C and applied at ${T} °C`,
   tipMakeup:'Salinity of low-salinity make-up water available to an OARO sweep. It only affects stages whose Sweep source is set to Fresh / product water make-up — otherwise it does nothing.',
   tipErd:'Recovers pressure from the brine leaving the train and hands it back to the feed — a pressure exchanger or turbine. The single largest energy saving in seawater RO, usually worth a third or more of the specific energy.',
   tipErdEff:'Share of the brine pressure energy the device returns. Modern pressure exchangers reach 95–97 %. Applies only while the device is switched on.',
@@ -797,6 +816,11 @@ ko:{
   tipFlow:'전처리 손실 이전의 원수 해수 유입량입니다. 공정은 이 값에 비례해 커지므로, 유량을 두 배로 해도 회수율·염농도·비에너지는 그대로고 절대 유량과 동력만 바뀍니다.',
   tipTds:'원수 해수의 총용존고형물(TDS) 입니다. 35 g/L = 35,000 mg/L 로 일반적인 대양 해수이며, 아라비아만은 40–45, 발트해는 10 미만입니다.',
   tipTemp:'유입수 온도입니다. π = φ·i·m·R·T 로 삼투압을 결정하여 온도가 높을수록 더 높은 압력이 필요합니다(약 0.35 %/°C). 실제 막은 온도가 오르면 투과수량과 염 투과도 함께 늘지만, 여기서는 삼투압 효과만 반영합니다.',
+  fTcf:'온도 보정', fTcfOn:'적용 — 생산량 고정, NDP 가 온도를 따름', fTcfOff:'미적용 — 입력한 NDP 그대로',
+  fTref:'NDP 기준 온도',
+  tipTcf:'설계는 잔여 압력이 아니라 생산량을 고정합니다. 막 투과계수는 7→ 27 °C 에서 약 1.9배 커지므로 같은 수량을 만드는 데 필요한 순구동압력은 그만큼 줄어듭니다: NDP(T) = NDP(Tref) / TCF. 적용하면 수온이 높을수록 삼투압은 오르더라도 필요 공급 압력은 낮아지며, 이것이 막 프로젝션의 거동입니다.',
+  tipTref:'입력한 순구동압력이 기준으로 하는 온도입니다. 막 데이터는 보통 25 °C 기준입니다.',
+  st7tcf:(Tr,T)=>`폴리아미드 온도 보정, NDP 기준 ${Tr} °C → 적용 ${T} °C`,
   tipMakeup:'OARO 스윈에 사용할 수 있는 저염 보충수의 염농도입니다. 스윈 공급원이 “생산수 / 보충수” 로 설정된 스테이지에만 적용되며, 그 외에는 계산에 영향을 주지 않습니다.',
   tipErd:'배출되는 농축수의 압력 에너지를 회수해 공급측으로 되돌려주는 장치(압력교환기 또는 터빈) 입니다. 해수담수화에서 가장 큰 에너지 절감 수단으로, 보통 비에너지의 1/3 이상을 줄입니다.',
   tipErdEff:'농축수 압력 에너지 중 회수되는 비율입니다. 최신 압력교환기는 95–97 % 수준입니다. 장치를 적용한 경우에만 반영됩니다.',
@@ -1045,6 +1069,7 @@ function mkStage(type, name){
 let state = { feed:{ Q:100, C:35, T:20, preLoss:3, freshC:0.5 },
               econ:{ erd:true, erdEff:96, energy:0.08, hours:8000 },
               units:{ flow:'m3h' },
+              tcf:{ on:true, Tref:25 },
               targets:{ on:false, recovery:80, prodTDS:500, sec:2.2 },
               stages:[] };
 
@@ -1121,6 +1146,7 @@ function loadPreset(which){
   uid = 1;
   Object.assign(state.feed, { Q:100, C:35, T:20, preLoss:3, freshC:0.5 });
   state.units.flow = 'm3h';
+  Object.assign(state.tcf, { on:true, Tref:25 });
   state.targets.on = false;          /* only a project preset turns the scorecard on */
   if (which === 'swro'){
     const a = mkStage('SWRO','1st stage SWRO'); a.feed=[{src:'FEED',port:'conc',frac:100}]; a.recovery=45;
@@ -1254,7 +1280,8 @@ function computeStage(s, fd, sw, T, trace){
   const lowSide = s.type === 'OARO' ? piS : piP;           // pressure requirement
   const dPiMax  = beta*piC - lowSide;
   const backP   = s.type === 'OARO' ? s.pSweep : 0;
-  const Preq    = dPiMax + s.ndp + s.dP + backP;
+  const ndpEff  = ndpAt(s.ndp, T);
+  const Preq    = dPiMax + ndpEff + s.dP + backP;
   /* NF rejects divalents and passes monovalents, so a NaCl-equivalent osmotic
      pressure badly overstates its driving requirement. Report the number but do
      not fail the stage on it. */
@@ -1379,10 +1406,16 @@ function computeStage(s, fd, sw, T, trace){
     {src: s.type==='OARO' ? 'β·π_c − π_s' : 'β·π_c − π_p'},
     {src:`${f(beta,2)}·${f(piC,2)} − ${f(lowSide,3)}`},
     {src:f(dPiMax,2), unit:'bar', res:true}]);
+  if (state.tcf && state.tcf.on){
+    eq(s7,'NDP',[
+      {src:'frac(NDP_ref; TCF)'},
+      {src:`frac(${f(s.ndp,2)}; ${f(TCF(T,state.tcf.Tref),4)})`},
+      {src:f(ndpEff,2), unit:'bar', res:true}], t('st7tcf')(f(state.tcf.Tref,0), f(T,1)));
+  }
   eq(s7,'P_feed',[
     {src: s.type==='OARO' ? 'Δπ + NDP + ΔP_ch + P_sweep' : 'Δπ + NDP + ΔP_ch'},
-    {src: s.type==='OARO' ? `${f(dPiMax,2)} + ${f(s.ndp,2)} + ${f(s.dP,2)} + ${f(backP,2)}`
-                          : `${f(dPiMax,2)} + ${f(s.ndp,2)} + ${f(s.dP,2)}`},
+    {src: s.type==='OARO' ? `${f(dPiMax,2)} + ${f(ndpEff,2)} + ${f(s.dP,2)} + ${f(backP,2)}`
+                          : `${f(dPiMax,2)} + ${f(ndpEff,2)} + ${f(s.dP,2)}`},
     {src:f(Preq,2), unit:'bar', res:true}],t('st7lab'));
   if (pna) flag(s7,'warn', t('st7nf')(f(Preq,1)));
   else flag(s7, ok ? 'ok':'bad', ok
@@ -1748,6 +1781,11 @@ function renderFeed(){
   g.appendChild(field(t('fTds')+U('g/L'),  F.C, v=>{F.C=v;refresh();},{step:0.5,min:0,tip:t('tipTds')}));
   g.appendChild(field(t('fTemp')+U('°C'),F.T, v=>{F.T=v;refresh();},{step:1,tip:t('tipTemp')}));
   g.appendChild(field(t('fPre')+U('%'),F.preLoss,v=>{F.preLoss=v;refresh();},{step:0.5,min:0,tip:t('tipPre')}));
+  g.appendChild(field(t('fTcf'), state.tcf.on?1:0, v=>{state.tcf.on=(v==='1'||v===1);refresh(true);},
+    {options:[{value:1,label:t('fTcfOn')},{value:0,label:t('fTcfOff')}],tip:t('tipTcf')}));
+  if (state.tcf.on)
+    g.appendChild(field(t('fTref')+U('°C'), state.tcf.Tref, v=>{state.tcf.Tref=v;refresh();},
+      {step:1,tip:t('tipTref')}));
   /* only worth showing when a stage actually sweeps with make-up water */
   if (state.stages.some(x=>x.type==='OARO' && x.sweep.src==='FRESH'))
     g.appendChild(field(t('fMakeup')+U('g/L'),F.freshC,v=>{F.freshC=v;refresh();},{step:0.1,min:0,tip:t('tipMakeup')}));
@@ -2834,12 +2872,13 @@ const savePStore = () => { try { localStorage.setItem(PKEY, JSON.stringify(PSTOR
 function snapshotState(){
   return JSON.parse(JSON.stringify({
     feed: state.feed, econ: state.econ, units: state.units,
-    targets: state.targets, stages: state.stages }));
+    tcf: state.tcf, targets: state.targets, stages: state.stages }));
 }
 function applySnapshot(sn){
   Object.assign(state.feed, sn.feed || {});
   Object.assign(state.econ, sn.econ || {});
   Object.assign(state.units, sn.units || {});
+  Object.assign(state.tcf, sn.tcf || {});
   Object.assign(state.targets, sn.targets || {});
   state.stages = JSON.parse(JSON.stringify(sn.stages || []));
   uid = 1; state.stages.forEach(s=>{ const m=/^S(\d+)$/.exec(s.id); if(m) uid = Math.max(uid, +m[1]+1); });
