@@ -208,6 +208,21 @@ how much is membrane permeability and hydraulic loss. `Ctrl+Z` puts your values 
 Watch for a stage that collapses to ~1 % recovery: that means its inlet is already at the limit and the stage is
 earning nothing — the tool flags it, and it is a sign to delete that stage or convert it to OARO.
 
+**Stage sizing.** Every stage can be specified two ways. *Fixed NDP & rejection* is the quick
+way — you type the surplus pressure and the salt rejection. *Membrane model (A, B, area)* works the
+way vendor projection software does: give it the element count, the area per element, the clean water
+permeability A and the salt permeability B, and it derives the flux, the driving pressure and the
+permeate quality for you. The defaults are back-calculated from the DuPont WAVE runs and the nine
+design cases in the PROMISE deck; the RO stages fit to within 5 % on A and 2 % on B across all nine.
+NF and OARO are deliberately left on fixed rejection — a total-TDS A and B cannot describe a membrane
+that sorts ions by charge, and the OARO sweep stream is still unknown.
+
+**Pressure basis**, in the Feed panel. *Element average* is what a membrane projection reports and
+what the PROMISE deck's Pin column uses: the driving pressure is taken against the average of the
+feed and concentrate osmotic pressures, and the quoted figure is the pressure at the feed inlet.
+*Concentrate end* is the stricter reading — surplus must remain at the tightest point in the element,
+so it always gives a higher number. Same membrane, different place to put the gauge.
+
 **Motion.** Pipes carry an animated dash whose speed follows the actual flow rate, KPI numbers count up when
 they change, stages over pressure pulse red. `◉ Motion` in the toolbar pauses all of it, and the page respects
 your operating system's reduced-motion setting automatically.
