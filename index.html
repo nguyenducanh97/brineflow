@@ -707,6 +707,8 @@ en:{
   tipCp:'β = C_wall / C_bulk, typically 1.1 – 1.3',
   fNdp:'Net driving pressure', fDp:'Channel ΔP', fEff:'Pump efficiency', fPmax:'Max. pressure',
   fSize:'Stage sizing', fSizeFix:'Fixed NDP & rejection', fSizeMem:'Membrane model (A, B, area)',
+  fElem:'Element',
+  tipElem:'Pick a membrane and its permeability A and salt permeability B are set from the manufacturer\'s published data sheet — derived from the permeate flow and salt rejection DuPont quotes at its standard test (32,000 ppm NaCl, 800 psi, 25 °C, 8 % recovery), by inverting the same two equations this tool uses forward. Nothing about those entries is fitted to any project. The ISD 7-element entry is the stack the PROMISE deck lists on slide 6, area-weighted. The entries marked \'fitted to the deck\' are the opposite — back-calculated from its own nine cases, useful for reproducing its tables but circular as a check on them. Typing over any value switches the stage to Custom.',
   fSizeMemA:'Membrane model, A only — keep rejection',
   st2aonly:'This stage takes its driving pressure from the membrane model but its permeate quality from the rejection above — the setting to use when you trust a measured rejection more than a single salt-permeability constant.',
   fElems:'Elements', fAElem:'Area per element', fA25:'A at 25 °C', fFF:'Flow factor', fB25:'B at 25 °C',
@@ -909,6 +911,8 @@ ko:{
   tipCp:'β = 막면 농도 / 벌크 농도, 일반적으로 1.1 – 1.3',
   fNdp:'순구동압력 (NDP)', fDp:'유로 압력손실 ΔP', fEff:'펌프 효율', fPmax:'최대 운전 압력',
   fSize:'스테이지 산정 방식', fSizeFix:'NDP·제거율 직접 입력', fSizeMem:'막 모델 (A, B, 면적)',
+  fElem:'모듈',
+  tipElem:'모듈을 고르면 제조사 공식 데이터시트에서 유도한 투수계수 A 와 염 투과계수 B 가 자동 입력됩니다. DuPont 표준 시험 조건(32,000 ppm NaCl, 800 psi, 25 °C, 회수율 8 %)의 생산수량과 제거율을 이 도구가 쓰는 식으로 역산한 값이며, 특정 프로젝트에 맞춘 값이 아닙니다. ISD 7-element 항목은 자료 슬라이드 6 의 스택을 면적 가중평균한 값입니다. ‘fitted to the deck’ 항목은 반대로 9 개 케이스에서 역산한 값이므로 자료 재현에는 유용하지만 검증 근거로는 순환 논증입니다. 값을 직접 수정하면 Custom 으로 바뀝니다.',
   fSizeMemA:'막 모델, A 만 — 제거율은 입력값 유지',
   st2aonly:'이 스테이지는 구동압력은 막 모델에서, 생산수 수질은 위의 제거율에서 가져옵니다. 단일 염 투과계수보다 실측 제거율을 더 신뢰할 때 쓰는 설정입니다.',
   fElems:'모듈 수', fAElem:'모듈당 면적', fA25:'25 °C 기준 A', fFF:'Flow factor', fB25:'25 °C 기준 B',
@@ -1115,13 +1119,13 @@ function mml(src){
            sweep stream is known. Values are a placeholder. */
 const DEF = {
   SWRO:{ recovery:45, R:99.4, cp:1.15, dP:2.0, ndp:5.0, pumpEff:80, pMax:83,
-         mem:{ elems:98, aElem:40.2, A25:1.374, B25:0.075, ff:0.85 } },
+         mem:{ el:'sw30xle440', elems:98, aElem:41.0, A25:1.329, B25:0.0730, ff:0.75 } },
   HPRO:{ recovery:30, R:99.0, cp:1.20, dP:3.0, ndp:5.0, pumpEff:80, pMax:120,
-         mem:{ elems:7,  aElem:32.5, A25:0.479, B25:0.170, ff:0.85 } },
+         mem:{ el:'fit-uhpro', elems:7, aElem:32.5, A25:0.479, B25:0.170, ff:0.85 } },
   OARO:{ recovery:35, R:98.5, cp:1.25, dP:3.0, ndp:5.0, pumpEff:80, pMax:70,
-         mem:{ elems:14, aElem:600,  A25:0.500, B25:0.100, ff:0.85 } },
+         mem:{ el:'custom', elems:14, aElem:600, A25:0.500, B25:0.100, ff:0.85 } },
   NF:{   recovery:70, R:35.0, cp:1.10, dP:2.0, ndp:3.0, pumpEff:80, pMax:41,
-         mem:{ elems:7,  aElem:32.5, A25:4.000, B25:24.00, ff:0.85 } }
+         mem:{ el:'custom', elems:7, aElem:32.5, A25:4.000, B25:24.00, ff:0.85 } }
 };
 /* stage colours live in CSS so they follow the active theme */
 const TYPECOLOR = new Proxy({}, { get:(_,k)=>CSSV('--'+String(k).toLowerCase()) });
@@ -1152,7 +1156,38 @@ function resetColors(){
    A = 0.976 LMH/bar clean at 25 °C; permeate 253.4 → 446.6 mg/L over the same
    pair gives B = 0.082 L/(m²·h) at 25 °C. The default geometry is the deck's
    own 3안 1st RO: 14 vessels of 7 DuPont ISD elements. */
-const MEMDEF = { on:false, elems:98, aElem:40.2, A25:1.374, B25:0.075, ff:0.85 };
+/* Element library. A_25 and B_25 are derived from DuPont's own published data
+   sheet for each element - permeate flow and stabilised salt rejection at the
+   standard test (32,000 ppm NaCl, 800 psi, 25 °C, pH 8, 8 % recovery) - by
+   inverting the same two equations this tool uses forward:
+       A = J/NDP  with  NDP = P_test − π_avg + π_p − ΔP/2
+       B = C_p·J/(C_avg − C_p)
+   π for the test uses Pitzer parameters for NaCl, not the seawater correlation,
+   because the test solution is NaCl. These are CLEAN values; the flow factor
+   derates them. Nothing here is fitted to the PROMISE deck.
+   Sources: DuPont form 45-D00966 (SW30XLE-440), 45-D00970 (SW30XHR-440),
+   SW30HRLE-440 PDS, 45-D00689 (Seamaxx-440). */
+const MEMLIB = {
+  'sw30xle440' : { label:'FilmTec SW30XLE-440',  A25:1.329, B25:0.0730, aElem:41.0 },
+  'sw30hrle440': { label:'FilmTec SW30HRLE-440', A25:1.074, B25:0.0589, aElem:41.0 },
+  'sw30xhr440' : { label:'FilmTec SW30XHR-440',  A25:0.889, B25:0.0439, aElem:41.0 },
+  'seamaxx440' : { label:'FilmTec Seamaxx-440',  A25:2.287, B25:0.1887, aElem:41.0 },
+  /* the deck's own 7-element internally staged vessel, slide 6:
+     SW30HRLE-440, SW30HRLE-400, SW30XLE-440 x3, Seamaxx-440 x2 - area-weighted */
+  'isd7'       : { label:'DuPont ISD 7-element stack', A25:1.536, B25:0.1026, aElem:40.47 },
+  /* what the PROMISE deck's own nine cases imply, for reproducing its tables */
+  'fit-ro1'    : { label:'Fitted to the deck — 1st RO',  A25:1.374, B25:0.075, aElem:40.2 },
+  'fit-ro2'    : { label:'Fitted to the deck — 2nd RO',  A25:0.751, B25:0.035, aElem:40.9 },
+  'fit-uhpro'  : { label:'Fitted to the deck — UHPRO',   A25:0.479, B25:0.170, aElem:32.5 },
+  'custom'     : { label:'Custom — type your own' }
+};
+function applyElem(M, key){
+  const e = MEMLIB[key];
+  M.el = key;
+  if (e && key !== 'custom'){ M.A25 = e.A25; M.B25 = e.B25; M.aElem = e.aElem; }
+}
+
+const MEMDEF = { on:false, el:'sw30xle440', elems:98, aElem:41.0, A25:1.329, B25:0.0730, ff:0.75 };
 function memFor(type){
   const d = DEF[type] && DEF[type].mem;
   return Object.assign({ on:false }, MEMDEF, d || {});
@@ -1237,13 +1272,17 @@ function buildP3(caseId, basis){
      are left on fixed rejection: a total-TDS A and B cannot describe a membrane
      that sorts ions by charge, and the OARO sweep is still unknown. */
   const SIDE = ds ? 1 : 11.25;              // the side-train is built at 1/11.25
-  const memRO1 = { on:true , elems:98,  aElem:40.2, A25:1.374, B25:0.075, ff:0.85 };
+  /* The 1st RO is the DuPont ISD 7-element vessel listed on slide 6, so its
+     constants come from those elements' data sheets rather than from a fit.
+     Flow factor 0.75 is the one WAVE itself used in the deck's own projection. */
+  const memRO1 = { on:true , el:'isd7', elems:98, aElem:40.47, A25:1.536, B25:0.1026, ff:0.75 };
   /* The 2nd RO is where the scale-down starts (slide 24), so on the down-scale
      basis its membrane area has to come down with its flow - otherwise the same
      35 vessels see a twelfth of the permeate, the flux collapses to 0.97 LMH and
      the model reports a permeate ten times too salty. 35/11.25 keeps the flux at
      the 10.9 LMH both bases actually run at. */
-  const memRO2 = { on:true , elems:ds ? 3.11 : 35, aElem:40.9, A25:0.751, B25:0.035, ff:0.85 };
+  const memRO2 = { on:true , el:'sw30xhr440', elems:ds ? 3.11 : 35, aElem:41.0,
+                   A25:0.889, B25:0.0439, ff:0.75 };
   /* on:2 - the deck's UHPRO permeability is constant across all nine cases
      (A_eff 0.383-0.427) but its salt passage is not (B 0.113-0.263, and moving
      the wrong way with temperature), so take the pressure from A and leave the
@@ -2127,10 +2166,13 @@ function renderStages(){
     g2.appendChild(field(t('fSize'), M.on===2?2:(M.on?1:0), v=>{M.on=+v;refresh(true);},
       {options:[{value:0,label:t('fSizeFix')},{value:1,label:t('fSizeMem')},
                 {value:2,label:t('fSizeMemA')}],tip:t('tipSize')}));
+    if (M.on)
+      g2.appendChild(field(t('fElem'), M.el || 'custom', v=>{applyElem(M,v);refresh(true);},
+        {options:Object.keys(MEMLIB).map(k=>({value:k,label:MEMLIB[k].label})), tip:t('tipElem')}));
     if (M.on === 2)
       g2.appendChild(field(t('fRej')+U('%'), s.R, v=>{s.R=v;refresh();},{step:0.1,min:0,tip:t('tipRej')}));
     else if (M.on)
-      g2.appendChild(field(t('fB25')+U('L/m²h'), M.B25, v=>{M.B25=v;refresh();},
+      g2.appendChild(field(t('fB25')+U('L/m²h'), M.B25, v=>{M.B25=v;M.el='custom';refresh(true);},
         {step:0.005,min:0,tip:t('tipB25')}));
     else
       g2.appendChild(field(t('fRej')+U('%'), s.R, v=>{s.R=v;refresh();},{step:0.1,min:0,tip:t('tipRej')}));
@@ -2142,9 +2184,9 @@ function renderStages(){
     if (M.on){
       g3.appendChild(field(t('fElems'), M.elems, v=>{M.elems=Math.max(1,v);refresh();},
         {step:1,min:1,tip:t('tipElems')}));
-      g3.appendChild(field(t('fAElem')+U('m²'), M.aElem, v=>{M.aElem=v;refresh();},
+      g3.appendChild(field(t('fAElem')+U('m²'), M.aElem, v=>{M.aElem=v;M.el='custom';refresh(true);},
         {step:0.1,min:0.1,tip:t('tipAElem')}));
-      g3.appendChild(field(t('fA25')+U('LMH/bar'), M.A25, v=>{M.A25=v;refresh();},
+      g3.appendChild(field(t('fA25')+U('LMH/bar'), M.A25, v=>{M.A25=v;M.el='custom';refresh(true);},
         {step:0.02,min:0.01,tip:t('tipA25')}));
       g3.appendChild(field(t('fFF'), M.ff, v=>{M.ff=Math.max(0.01,Math.min(1,v));refresh();},
         {step:0.05,min:0.01,max:1,tip:t('tipFF')}));

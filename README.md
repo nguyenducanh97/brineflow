@@ -212,8 +212,12 @@ earning nothing — the tool flags it, and it is a sign to delete that stage or 
 way — you type the surplus pressure and the salt rejection. *Membrane model (A, B, area)* works the
 way vendor projection software does: give it the element count, the area per element, the clean water
 permeability A and the salt permeability B, and it derives the flux, the driving pressure and the
-permeate quality for you. The defaults are back-calculated from the DuPont WAVE runs and the nine
-design cases in the PROMISE deck; the RO stages fit to within 5 % on A and 2 % on B across all nine.
+permeate quality for you. An **Element** picker sets A and B from the manufacturer's published data sheet — derived from the
+permeate flow and salt rejection DuPont quotes at its standard test (32,000 ppm NaCl, 800 psi, 25 °C,
+8 % recovery) by inverting the same two equations the tool uses forward. Nothing in those entries is
+fitted to any project. The library also carries the deck's own ISD 7-element stack (area-weighted) and,
+separately labelled, the constants back-calculated from its nine cases — useful for reproducing its
+tables, but circular as a check on them.
 NF and OARO are deliberately left on fixed rejection — a total-TDS A and B cannot describe a membrane
 that sorts ions by charge, and the OARO sweep stream is still unknown.
 
