@@ -707,6 +707,8 @@ en:{
   tipCp:'β = C_wall / C_bulk, typically 1.1 – 1.3',
   fNdp:'Net driving pressure', fDp:'Channel ΔP', fEff:'Pump efficiency', fPmax:'Max. pressure',
   fSize:'Stage sizing', fSizeFix:'Fixed NDP & rejection', fSizeMem:'Membrane model (A, B, area)',
+  fSizeMemA:'Membrane model, A only — keep rejection',
+  st2aonly:'This stage takes its driving pressure from the membrane model but its permeate quality from the rejection above — the setting to use when you trust a measured rejection more than a single salt-permeability constant.',
   fElems:'Elements', fAElem:'Area per element', fA25:'A at 25 °C', fFF:'Flow factor', fB25:'B at 25 °C',
   fKa:'TCF exponent K_A',
   fBasis:'Pressure basis', fBasisAvg:'Element average (projection)', fBasisConc:'Concentrate end (strict)',
@@ -907,6 +909,8 @@ ko:{
   tipCp:'β = 막면 농도 / 벌크 농도, 일반적으로 1.1 – 1.3',
   fNdp:'순구동압력 (NDP)', fDp:'유로 압력손실 ΔP', fEff:'펌프 효율', fPmax:'최대 운전 압력',
   fSize:'스테이지 산정 방식', fSizeFix:'NDP·제거율 직접 입력', fSizeMem:'막 모델 (A, B, 면적)',
+  fSizeMemA:'막 모델, A 만 — 제거율은 입력값 유지',
+  st2aonly:'이 스테이지는 구동압력은 막 모델에서, 생산수 수질은 위의 제거율에서 가져옵니다. 단일 염 투과계수보다 실측 제거율을 더 신뢰할 때 쓰는 설정입니다.',
   fElems:'모듈 수', fAElem:'모듈당 면적', fA25:'25 °C 기준 A', fFF:'Flow factor', fB25:'25 °C 기준 B',
   fKa:'온도보정 지수 K_A',
   fBasis:'압력 기준', fBasisAvg:'모듈 평균 (프로젝션)', fBasisConc:'농축수 단 (엄격)',
@@ -1234,8 +1238,17 @@ function buildP3(caseId, basis){
      that sorts ions by charge, and the OARO sweep is still unknown. */
   const SIDE = ds ? 1 : 11.25;              // the side-train is built at 1/11.25
   const memRO1 = { on:true , elems:98,  aElem:40.2, A25:1.374, B25:0.075, ff:0.85 };
-  const memRO2 = { on:true , elems:35,  aElem:40.9, A25:0.751, B25:0.035, ff:0.85 };
-  const memUH  = { on:true , elems:Math.round(7*SIDE), aElem:32.5, A25:0.479, B25:0.170, ff:0.85 };
+  /* The 2nd RO is where the scale-down starts (slide 24), so on the down-scale
+     basis its membrane area has to come down with its flow - otherwise the same
+     35 vessels see a twelfth of the permeate, the flux collapses to 0.97 LMH and
+     the model reports a permeate ten times too salty. 35/11.25 keeps the flux at
+     the 10.9 LMH both bases actually run at. */
+  const memRO2 = { on:true , elems:ds ? 3.11 : 35, aElem:40.9, A25:0.751, B25:0.035, ff:0.85 };
+  /* on:2 - the deck's UHPRO permeability is constant across all nine cases
+     (A_eff 0.383-0.427) but its salt passage is not (B 0.113-0.263, and moving
+     the wrong way with temperature), so take the pressure from A and leave the
+     permeate quality on the deck's own rejection figure. */
+  const memUH  = { on:2, elems:Math.round(7*SIDE), aElem:32.5, A25:0.479, B25:0.170, ff:0.85 };
 
   const ro1 = mkStage('SWRO','1st RO'); ro1.feed=[{src:'FEED',port:'conc',frac:100}];
   ro1.recovery=c.r1; ro1.R=c.R1; ro1.cp=1.0; ro1.ndp=5; ro1.dP=c.dp[0]; ro1.pMax=83;
@@ -1389,6 +1402,7 @@ function computeStage(s, fd, sw, T, trace){
     return rr;
   };
 
+  const useB = !!mm && mm.on !== 2;    // 2 = derive the pressure but not the quality
   let Cp = (1 - Rr) * fd.C * beta;                         // permeate salinity
   let r  = split(Cp), Jw = 0, Bt = 0, Aeff = 0, ndpMem = 0;
 
@@ -1398,7 +1412,7 @@ function computeStage(s, fd, sw, T, trace){
        falls out of the flux. C_p = B·β·C_avg/(J_w + B), and C_avg depends on
        C_p through the salt balance, so a few passes settle it. */
     Bt = mm.B25 * Math.exp(KB*(1/298.15 - 1/(273.15+T)));
-    for (let i = 0; i < 24; i++){
+    for (let i = 0; useB && i < 24; i++){
       clamp = null; r = split(Cp);
       Jw = r*fd.Q*1000/area/HRS;                           // LMH
       const cc   = (1-r) > 1e-9 ? (fd.C - r*Cp)/(1-r) : fd.C;
@@ -1491,7 +1505,7 @@ function computeStage(s, fd, sw, T, trace){
 
   /* --- 2. permeate quality --- */
   const s2 = step(t('st2'));
-  if (mm){
+  if (useB){
     note(s2, t('st2mem'));
     given(s2,[['B_25',f(mm.B25,4),'L/m²h'],['B(T)',f(Bt,4),'L/m²h'],['J_w',f(Jw,2),'LMH'],
               ['β',f(beta,2),'']]);
@@ -1509,6 +1523,7 @@ function computeStage(s, fd, sw, T, trace){
       {src:`(1 − ${f(Rr,4)})·${f(fd.C,3)}·${f(beta,2)}`},
       {src:f(Cp,4), unit:'g/L', res:true}]);
     note(s2, t('st2note')(f(s.R,2), f(beta,2)));
+    if (mm) flag(s2,'warn', t('st2aonly'));
   }
 
   /* --- 3. recovery --- */
@@ -2109,9 +2124,12 @@ function renderStages(){
     else
       g2.appendChild(field(t('fTarget')+'<sub>c</sub>'+U('g/L'), s.targetC, v=>{s.targetC=v;refresh();},{step:1,min:0,tip:t('tipTarget')}));
     const M = memOf(s);
-    g2.appendChild(field(t('fSize'), M.on?1:0, v=>{M.on=(v==='1'||v===1);refresh(true);},
-      {options:[{value:0,label:t('fSizeFix')},{value:1,label:t('fSizeMem')}],tip:t('tipSize')}));
-    if (M.on)
+    g2.appendChild(field(t('fSize'), M.on===2?2:(M.on?1:0), v=>{M.on=+v;refresh(true);},
+      {options:[{value:0,label:t('fSizeFix')},{value:1,label:t('fSizeMem')},
+                {value:2,label:t('fSizeMemA')}],tip:t('tipSize')}));
+    if (M.on === 2)
+      g2.appendChild(field(t('fRej')+U('%'), s.R, v=>{s.R=v;refresh();},{step:0.1,min:0,tip:t('tipRej')}));
+    else if (M.on)
       g2.appendChild(field(t('fB25')+U('L/m²h'), M.B25, v=>{M.B25=v;refresh();},
         {step:0.005,min:0,tip:t('tipB25')}));
     else
