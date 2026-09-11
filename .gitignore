@@ -3,3 +3,8 @@ DEPLOY.md
 *.backup.html
 Thumbs.db
 .DS_Store
+
+# the locking tool and the unencrypted original stay local
+protect.html
+_locked_test.html
+app-unlocked.html
