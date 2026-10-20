@@ -1,0 +1,5 @@
+# scratch
+*.bak
+*.backup.html
+Thumbs.db
+.DS_Store
